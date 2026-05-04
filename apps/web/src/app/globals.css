@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --background: #faf8f3;
+  --surface: #f3f0e8;
+  --surface-strong: #ffffff;
+  --text: #2c2b28;
+  --muted: #69645b;
+  --brand: #ba7517;
+  --brand-strong: #8f550d;
+  --border: rgba(40, 39, 48, 0.08);
+  --radius: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Helvetica Neue",
+    sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.learnify-shell {
+  min-height: 100vh;
+}
+
+.learnify-container {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.learnify-wordmark {
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
