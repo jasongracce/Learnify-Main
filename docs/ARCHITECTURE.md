@@ -631,3 +631,10 @@ To keep that future migration possible:
 ```
 
 Do not prematurely abstract every database detail. The goal is practical portability, not generic infrastructure.
+
+## 20. Open Setup Notes
+
+Before live beta testing, complete these setup tasks:
+
+- Apply the milestone Supabase migration and seed data so the live project has `profiles`, published course/lesson tables, progress tables, question attempts, skill mastery, and Lumi tables.
+- Configure Google Auth in Supabase Auth, including local and production callback URLs for `/auth/callback`.

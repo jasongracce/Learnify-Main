@@ -205,18 +205,23 @@ alter table public.student_skill_mastery enable row level security;
 alter table public.lumi_conversations enable row level security;
 alter table public.lumi_messages enable row level security;
 
+drop policy if exists "profiles own read" on public.profiles;
 create policy "profiles own read" on public.profiles
   for select using (auth.uid() = id);
 
+drop policy if exists "profiles own update" on public.profiles;
 create policy "profiles own update" on public.profiles
   for update using (auth.uid() = id) with check (auth.uid() = id);
 
+drop policy if exists "waitlist public insert" on public.waitlist_signups;
 create policy "waitlist public insert" on public.waitlist_signups
   for insert with check (true);
 
+drop policy if exists "published courses read" on public.courses;
 create policy "published courses read" on public.courses
   for select using (status = 'published' and auth.role() = 'authenticated');
 
+drop policy if exists "published modules read" on public.modules;
 create policy "published modules read" on public.modules
   for select using (
     auth.role() = 'authenticated'
@@ -227,9 +232,11 @@ create policy "published modules read" on public.modules
     )
   );
 
+drop policy if exists "published lessons read" on public.lessons;
 create policy "published lessons read" on public.lessons
   for select using (status = 'published' and auth.role() = 'authenticated');
 
+drop policy if exists "published lesson blocks read" on public.lesson_blocks;
 create policy "published lesson blocks read" on public.lesson_blocks
   for select using (
     auth.role() = 'authenticated'
@@ -240,15 +247,19 @@ create policy "published lesson blocks read" on public.lesson_blocks
     )
   );
 
+drop policy if exists "skills authenticated read" on public.skills;
 create policy "skills authenticated read" on public.skills
   for select using (auth.role() = 'authenticated');
 
+drop policy if exists "lesson skills authenticated read" on public.lesson_skills;
 create policy "lesson skills authenticated read" on public.lesson_skills
   for select using (auth.role() = 'authenticated');
 
+drop policy if exists "lesson prerequisites authenticated read" on public.lesson_prerequisites;
 create policy "lesson prerequisites authenticated read" on public.lesson_prerequisites
   for select using (auth.role() = 'authenticated');
 
+drop policy if exists "questions for published lessons read" on public.questions;
 create policy "questions for published lessons read" on public.questions
   for select using (
     auth.role() = 'authenticated'
@@ -259,21 +270,27 @@ create policy "questions for published lessons read" on public.questions
     )
   );
 
+drop policy if exists "own block progress" on public.lesson_block_progress;
 create policy "own block progress" on public.lesson_block_progress
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "own lesson progress" on public.lesson_progress;
 create policy "own lesson progress" on public.lesson_progress
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "own question attempts" on public.question_attempts;
 create policy "own question attempts" on public.question_attempts
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "own skill mastery" on public.student_skill_mastery;
 create policy "own skill mastery" on public.student_skill_mastery
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "own lumi conversations" on public.lumi_conversations;
 create policy "own lumi conversations" on public.lumi_conversations
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+drop policy if exists "own lumi messages" on public.lumi_messages;
 create policy "own lumi messages" on public.lumi_messages
   for all using (
     exists (

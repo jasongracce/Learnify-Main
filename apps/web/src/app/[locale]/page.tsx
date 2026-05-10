@@ -1,14 +1,20 @@
 import Link from "next/link"
+import { notFound } from "next/navigation"
 import { BookOpen, CheckCircle2 } from "lucide-react"
-import type { Locale } from "@learnify/shared"
 import { copy } from "@/lib/copy"
+import { isLocale } from "@/lib/locales"
 
 type HomePageProps = {
-  params: Promise<{ locale: Locale }>
+  params: Promise<{ locale: string }>
 }
 
 export default async function HomePage({ params }: HomePageProps) {
   const { locale } = await params
+
+  if (!isLocale(locale)) {
+    notFound()
+  }
+
   const t = copy[locale].home
 
   return (

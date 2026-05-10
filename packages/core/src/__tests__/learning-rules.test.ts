@@ -3,6 +3,7 @@ import {
   calculateLessonProgress,
   checkMultipleChoiceAnswer,
   generateRuleBasedLumiFeedback,
+  generateRuleBasedLumiChatResponse,
   getNextAttemptNumber,
   recommendNextLesson,
   resolveWaitlistAccess,
@@ -45,12 +46,12 @@ describe("milestone learning rules", () => {
   })
 
   it("calculates block-weighted lesson progress", () => {
-    expect(calculateLessonProgress({ completedBlocks: 2, totalBlocks: 6 })).toBe(
-      33
-    )
-    expect(calculateLessonProgress({ completedBlocks: 8, totalBlocks: 6 })).toBe(
-      100
-    )
+    expect(
+      calculateLessonProgress({ completedBlocks: 2, totalBlocks: 6 })
+    ).toBe(33)
+    expect(
+      calculateLessonProgress({ completedBlocks: 8, totalBlocks: 6 })
+    ).toBe(100)
   })
 
   it("checks multiple choice answers", () => {
@@ -103,5 +104,66 @@ describe("milestone learning rules", () => {
         },
       })
     ).toContain("Gravity changes")
+  })
+
+  it("selects the gravity chat rule", () => {
+    const response = generateRuleBasedLumiChatResponse({
+      message: "Why does stronger gravity make things fall faster?",
+      locale: "en",
+      conversationId: "00000000-0000-0000-0000-000000000001",
+      lessons,
+    })
+
+    expect(response.relatedLessonSlug).toBe("gravity-and-falling-objects")
+    expect(response.answer).toContain("downward acceleration")
+  })
+
+  it("selects the projectile chat rule", () => {
+    const response = generateRuleBasedLumiChatResponse({
+      message: "Why does a projectile path curve?",
+      locale: "en",
+      conversationId: "00000000-0000-0000-0000-000000000001",
+      lessons,
+    })
+
+    expect(response.relatedLessonSlug).toBe("projectile-motion")
+    expect(response.answer).toContain("horizontal")
+  })
+
+  it("selects the net-force chat rule", () => {
+    const response = generateRuleBasedLumiChatResponse({
+      message: "What happens with unbalanced forces?",
+      locale: "en",
+      conversationId: "00000000-0000-0000-0000-000000000001",
+      lessons,
+    })
+
+    expect(response.relatedLessonSlug).toBe("forces-and-motion")
+    expect(response.answer).toContain("Net force")
+  })
+
+  it("redirects unmatched chat back to Physics prompts", () => {
+    const response = generateRuleBasedLumiChatResponse({
+      message: "Can you write my history essay?",
+      locale: "en",
+      conversationId: "00000000-0000-0000-0000-000000000001",
+      lessons,
+    })
+
+    expect(response.confidence).toBe("low")
+    expect(response.answer).toContain("Physics module")
+    expect(response.suggestedPrompts[0]).toContain("gravity")
+  })
+
+  it("returns Thai chat templates where configured", () => {
+    const response = generateRuleBasedLumiChatResponse({
+      message: "แรงลัพธ์คืออะไร",
+      locale: "th",
+      conversationId: "00000000-0000-0000-0000-000000000001",
+      lessons,
+    })
+
+    expect(response.relatedLessonSlug).toBe("forces-and-motion")
+    expect(response.answer).toContain("แรงลัพธ์")
   })
 })

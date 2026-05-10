@@ -38,10 +38,10 @@ type Copy = {
     body: string
     source: string
     waitlist: string
+    google: string
     submit: string
+    submitting: string
     email: string
-    password: string
-    disabledNote: string
   }
   dashboard: {
     title: string
@@ -50,6 +50,17 @@ type Copy = {
     nextLesson: string
     weakSkill: string
     insight: string
+    recentPractice: string
+  }
+  insights: {
+    title: string
+    body: string
+    lumiInsight: string
+    recommendedAction: string
+    recentPractice: string
+    recentPracticeBody: string
+    noPractice: string
+    skillToReview: string
   }
   courses: {
     title: string
@@ -66,6 +77,8 @@ type Copy = {
     correct: string
     retry: string
     lumi: string
+    askLumi: string
+    askLumiBody: string
     nextLesson: string
   }
 }
@@ -112,15 +125,14 @@ export const copy = {
       loginTitle: "Log in",
       signupTitle: "Create account",
       body:
-        "Authentication will connect to Supabase and check beta access before a student reaches the app.",
+        "Use Google or your email to request beta access. Learnify checks the private beta list before opening the app.",
       source:
         "Use this page as the destination for the Login button on learnify.academy.",
       waitlist: "Join the waitlist first",
-      submit: "Continue",
+      google: "Continue with Google",
+      submit: "Email me a sign-in link",
+      submitting: "Checking...",
       email: "Email",
-      password: "Password",
-      disabledNote:
-        "The form is staged until Supabase Auth and the waitlist gate are wired.",
     },
     dashboard: {
       title: "Student dashboard",
@@ -130,6 +142,18 @@ export const copy = {
       nextLesson: "Recommended next",
       weakSkill: "Skill to review",
       insight: "Lumi insight",
+      recentPractice: "Recent practice",
+    },
+    insights: {
+      title: "Insights",
+      body:
+        "Lumi turns recent answers and skill mastery into a focused next step.",
+      lumiInsight: "Lumi insight",
+      recommendedAction: "Recommended action",
+      recentPractice: "Recent practice",
+      recentPracticeBody: "Correct answers from your latest saved attempts.",
+      noPractice: "Complete a lesson question to unlock recent practice.",
+      skillToReview: "Skill to review",
     },
     courses: {
       title: "Courses",
@@ -147,6 +171,9 @@ export const copy = {
       correct: "Correct",
       retry: "Try again",
       lumi: "Lumi",
+      askLumi: "Ask Lumi about this lesson",
+      askLumiBody:
+        "Ask a quick question about this lesson and Lumi will keep the explanation tied to what you are learning here.",
       nextLesson: "Next lesson",
     },
   },
@@ -191,15 +218,14 @@ export const copy = {
       loginTitle: "เข้าสู่ระบบ",
       signupTitle: "สร้างบัญชี",
       body:
-        "ระบบยืนยันตัวตนจะเชื่อมกับ Supabase และตรวจ beta access ก่อนพาผู้เรียนเข้าแอป",
+        "ใช้ Google หรืออีเมลเพื่อขอเข้า beta ระบบจะตรวจรายชื่อ beta ก่อนเปิดแอป",
       source:
         "หน้านี้คือปลายทางของปุ่ม Login บน learnify.academy",
       waitlist: "เข้าร่วมรายชื่อรอก่อน",
-      submit: "ดำเนินการต่อ",
+      google: "ดำเนินการต่อด้วย Google",
+      submit: "ส่งลิงก์เข้าสู่ระบบทางอีเมล",
+      submitting: "กำลังตรวจสอบ...",
       email: "อีเมล",
-      password: "รหัสผ่าน",
-      disabledNote:
-        "ฟอร์มนี้เตรียมไว้สำหรับเชื่อม Supabase Auth และ waitlist gate",
     },
     dashboard: {
       title: "แดชบอร์ดผู้เรียน",
@@ -209,6 +235,18 @@ export const copy = {
       nextLesson: "แนะนำถัดไป",
       weakSkill: "ทักษะที่ควรทบทวน",
       insight: "คำแนะนำจาก Lumi",
+      recentPractice: "การฝึกล่าสุด",
+    },
+    insights: {
+      title: "ข้อมูลเชิงลึก",
+      body:
+        "Lumi ใช้คำตอบล่าสุดและระดับความเข้าใจเพื่อแนะนำขั้นตอนถัดไป",
+      lumiInsight: "คำแนะนำจาก Lumi",
+      recommendedAction: "สิ่งที่ควรทำถัดไป",
+      recentPractice: "การฝึกล่าสุด",
+      recentPracticeBody: "คำตอบที่ถูกต้องจากความพยายามล่าสุดที่บันทึกไว้",
+      noPractice: "ตอบคำถามในบทเรียนเพื่อดูการฝึกล่าสุด",
+      skillToReview: "ทักษะที่ควรทบทวน",
     },
     courses: {
       title: "คอร์ส",
@@ -226,6 +264,9 @@ export const copy = {
       correct: "ถูกต้อง",
       retry: "ลองอีกครั้ง",
       lumi: "Lumi",
+      askLumi: "ถาม Lumi เกี่ยวกับบทเรียนนี้",
+      askLumiBody:
+        "ถามคำถามสั้นๆ เกี่ยวกับบทเรียนนี้ แล้ว Lumi จะอธิบายให้เชื่อมกับสิ่งที่กำลังเรียนอยู่",
       nextLesson: "บทเรียนถัดไป",
     },
   },

@@ -6,7 +6,14 @@ import {
   type Locale,
 } from "@learnify/shared"
 import { selectLocalizedText } from "@learnify/core"
+import {
+  getCompletedLessonBlockSlugsForUser,
+  getRecentLumiMessagesForUser,
+} from "@learnify/database"
 import { LessonRenderer } from "@/components/lesson/lesson-renderer"
+import { LumiChat } from "@/components/lumi-chat"
+import { requireBetaUser } from "@/lib/auth/protected"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { copy } from "@/lib/copy"
 
 type LessonPageProps = {
@@ -15,11 +22,24 @@ type LessonPageProps = {
 
 export default async function LessonPage({ params }: LessonPageProps) {
   const { locale, lessonSlug } = await params
+  const user = await requireBetaUser(locale)
+
   const lesson = getPhysicsLesson(lessonSlug)
 
   if (!lesson) {
     notFound()
   }
+
+  const completedBlockIds = await getCompletedBlockIds({
+    lessonSlug,
+    userId: user.id,
+  })
+  const lumiHistory = await getLumiHistory({
+    lessonSlug,
+    userId: user.id,
+  })
+  const completedCount = completedBlockIds.length
+  const totalCount = lesson.blocks.length
 
   return (
     <main className="learnify-container py-8">
@@ -45,12 +65,65 @@ export default async function LessonPage({ params }: LessonPageProps) {
         <p className="mt-2 text-sm text-[var(--muted)]">
           {lesson.estimated_minutes} {copy[locale].lesson.minutes}
         </p>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          {locale === "th"
+            ? `บันทึกแล้ว ${completedCount}/${totalCount} บล็อก`
+            : `${completedCount}/${totalCount} blocks saved`}
+        </p>
+      </div>
+      <div className="mb-6 max-w-3xl">
+        <LumiChat
+          bodyOverride={copy[locale].lesson.askLumiBody}
+          currentLessonSlug={lesson.slug}
+          initialConversationId={lumiHistory.conversationId}
+          initialMessages={lumiHistory.messages}
+          locale={locale}
+          titleOverride={copy[locale].lesson.askLumi}
+          variant="compact"
+        />
       </div>
       <LessonRenderer
         blocks={lesson.blocks}
+        initialCompletedBlockIds={completedBlockIds}
+        lessonSlug={lesson.slug}
         locale={locale}
         questions={physicsQuestions}
       />
     </main>
   )
+}
+
+async function getCompletedBlockIds(input: {
+  userId: string
+  lessonSlug: string
+}) {
+  try {
+    const supabase = await createSupabaseServerClient()
+
+    return getCompletedLessonBlockSlugsForUser({
+      supabase,
+      userId: input.userId,
+      lessonSlug: input.lessonSlug,
+    })
+  } catch {
+    return []
+  }
+}
+
+async function getLumiHistory(input: { userId: string; lessonSlug: string }) {
+  try {
+    const supabase = await createSupabaseServerClient()
+
+    return getRecentLumiMessagesForUser({
+      supabase,
+      userId: input.userId,
+      currentLessonSlug: input.lessonSlug,
+      limit: 12,
+    })
+  } catch {
+    return {
+      conversationId: null,
+      messages: [],
+    }
+  }
 }

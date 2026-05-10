@@ -77,6 +77,8 @@ export type CourseStatus = "draft" | "published" | "archived"
 export type LessonDifficulty = "beginner" | "intermediate" | "advanced"
 export type QuestionDifficulty = "easy" | "medium" | "hard"
 export type ConfidenceLevel = "low" | "medium" | "high"
+export type LumiConfidence = "low" | "medium" | "high"
+export type LumiMessageRole = "user" | "assistant" | "system"
 
 export type LearnifyCourse = {
   id: string
@@ -177,13 +179,53 @@ export const questionAttemptSchema = z.object({
 })
 
 export const accessStatusQuerySchema = z.object({
-  email: z.string().trim().email().transform((value) => value.toLowerCase()),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .transform((value) => value.toLowerCase()),
 })
 
 export type AccessStatusQuery = z.infer<typeof accessStatusQuerySchema>
 
+export const completeLessonBlockRequestSchema = z.object({
+  locale: localeSchema.default("en"),
+})
+
+export type CompleteLessonBlockRequestInput = z.infer<
+  typeof completeLessonBlockRequestSchema
+>
+
+export const submitQuestionAttemptRequestSchema = z.object({
+  lessonSlug: z.string().trim().min(1),
+  blockId: z.string().trim().min(1),
+  questionId: z.string().trim().min(1),
+  selectedOptionId: z.string().trim().min(1),
+  timeSpentSeconds: z.number().int().min(0).optional(),
+  locale: localeSchema.default("en"),
+})
+
+export type SubmitQuestionAttemptRequestInput = z.infer<
+  typeof submitQuestionAttemptRequestSchema
+>
+
+export const authEmailRequestSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email()
+    .transform((value) => value.toLowerCase()),
+  locale: localeSchema.default("en"),
+})
+
+export type AuthEmailRequestInput = z.infer<typeof authEmailRequestSchema>
+
 export const waitlistSignupSchema = z.object({
-  email: z.string().trim().email().transform((value) => value.toLowerCase()),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .transform((value) => value.toLowerCase()),
   name: z.string().trim().min(1).max(120).optional(),
   role: z.string().trim().max(80).optional(),
   grade_level: z.string().trim().max(80).optional(),
@@ -192,6 +234,33 @@ export const waitlistSignupSchema = z.object({
 })
 
 export type WaitlistSignupInput = z.infer<typeof waitlistSignupSchema>
+
+export const lumiChatRequestSchema = z.object({
+  message: z.string().trim().min(1).max(1000),
+  locale: localeSchema.default("en"),
+  conversationId: z.string().uuid().optional(),
+  currentLessonSlug: z.string().trim().min(1).max(120).optional(),
+})
+
+export type LumiChatRequestInput = z.infer<typeof lumiChatRequestSchema>
+
+export const lumiChatResponseSchema = z.object({
+  answer: z.string(),
+  conversationId: z.string().uuid(),
+  suggestedPrompts: z.array(z.string()),
+  relatedLessonSlug: z.string().optional(),
+  confidence: z.enum(["low", "medium", "high"]),
+})
+
+export type LumiChatResponse = z.infer<typeof lumiChatResponseSchema>
+
+export type LumiMessage = {
+  id: string
+  conversationId: string
+  role: LumiMessageRole
+  message: string
+  createdAt: string
+}
 
 export {
   getPhysicsLesson,

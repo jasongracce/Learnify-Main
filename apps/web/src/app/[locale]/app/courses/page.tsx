@@ -2,6 +2,7 @@ import Link from "next/link"
 import { BookOpen } from "lucide-react"
 import { physicsFoundationsCourse, type Locale } from "@learnify/shared"
 import { selectLocalizedText } from "@learnify/core"
+import { requireBetaUser } from "@/lib/auth/protected"
 import { copy } from "@/lib/copy"
 
 type CoursesPageProps = {
@@ -10,6 +11,8 @@ type CoursesPageProps = {
 
 export default async function CoursesPage({ params }: CoursesPageProps) {
   const { locale } = await params
+  await requireBetaUser(locale)
+
   const t = copy[locale].courses
   const course = physicsFoundationsCourse
 
