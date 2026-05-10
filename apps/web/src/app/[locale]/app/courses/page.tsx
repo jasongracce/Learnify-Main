@@ -2,6 +2,7 @@ import Link from "next/link"
 import { BookOpen } from "lucide-react"
 import { physicsFoundationsCourse, type Locale } from "@learnify/shared"
 import { selectLocalizedText } from "@learnify/core"
+import { AppNav } from "@/components/app-nav"
 import { requireBetaUser } from "@/lib/auth/protected"
 import { copy } from "@/lib/copy"
 
@@ -17,8 +18,10 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
   const course = physicsFoundationsCourse
 
   return (
-    <main className="learnify-container py-8">
-      <div className="mb-6 max-w-2xl">
+    <>
+      <AppNav active="courses" locale={locale} />
+      <main className="learnify-container py-8">
+      <div className="mb-6 max-w-2xl border-b border-[var(--border)] pb-5">
         <h1 className="text-2xl font-semibold">{t.title}</h1>
         <p className="mt-2 leading-7 text-[var(--muted)]">{t.body}</p>
       </div>
@@ -77,6 +80,7 @@ export default async function CoursesPage({ params }: CoursesPageProps) {
           ))}
         </div>
       </section>
-    </main>
+      </main>
+    </>
   )
 }

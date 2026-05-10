@@ -96,7 +96,7 @@ export function LessonRenderer({
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid max-w-3xl gap-4">
       {blocks.map((block) => {
         const state = blockState[block.id] ?? {}
 
@@ -172,7 +172,7 @@ export function LessonRenderer({
             )
           case "next_lesson":
             return (
-              <div
+              <section
                 className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-4"
                 key={block.id}
               >
@@ -187,7 +187,7 @@ export function LessonRenderer({
                   onComplete={() => completeBlock(block.id)}
                   state={state}
                 />
-              </div>
+              </section>
             )
           default:
             return null
@@ -210,7 +210,7 @@ function TextBlockView({
 }) {
   return (
     <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-strong)] p-5">
-      <p className="max-w-3xl leading-7 text-[var(--text)]">
+      <p className="leading-7 text-[var(--text)]">
         {selectLocalizedText(
           { en: block.content_en, th: block.content_th },
           locale
@@ -243,9 +243,7 @@ function VisualBlockView({
 
   return (
     <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-strong)] p-5">
-      {title ? (
-        <p className="mb-4 text-sm text-[var(--muted)]">{title}</p>
-      ) : null}
+      {title ? <p className="mb-3 text-sm text-[var(--muted)]">{title}</p> : null}
       {block.visual_type === "force-diagram" ? (
         <ForceDiagram />
       ) : (
@@ -354,7 +352,7 @@ function SimulationBlockView({
 
   return (
     <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-strong)] p-5">
-      <div className="grid gap-5 md:grid-cols-[1fr_260px] md:items-center">
+      <div className="grid gap-4 md:grid-cols-[1fr_220px] md:items-center">
         <svg className="h-56 w-full" role="img" viewBox="0 0 560 260">
           <line
             stroke="#d8d0bf"
@@ -384,7 +382,7 @@ function SimulationBlockView({
         </svg>
         <div className="grid gap-3">
           <label className="grid gap-2 text-sm font-medium">
-            {locale === "th" ? "แรงโน้มถ่วง" : "Gravity"}
+            {copy[locale].lesson.gravity}
             <input
               max="16"
               min="2"
@@ -531,9 +529,7 @@ function QuestionBlockView({
         type="button"
       >
         {saving
-          ? locale === "th"
-            ? "กำลังบันทึก..."
-            : "Saving..."
+          ? t.saving
           : submitted && isCorrect
             ? t.correct
             : submitted
@@ -541,9 +537,7 @@ function QuestionBlockView({
               : t.checkAnswer}
       </button>
       {state.completed ? (
-        <span className="ml-3 text-sm text-[var(--muted)]">
-          {locale === "th" ? "บันทึกแล้ว" : "Saved"}
-        </span>
+        <span className="ml-3 text-sm text-[var(--muted)]">{t.saved}</span>
       ) : null}
       {error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}
       {feedback ? (
@@ -569,9 +563,7 @@ function LumiHintBlockView({
     <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-5">
       <p className="text-sm font-medium">{copy[locale].lesson.lumi}</p>
       <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-        {locale === "th"
-          ? "ถ้าคำตอบยังสับสน ให้ดูว่าแรงโน้มถ่วงเปลี่ยนความเร่งอย่างไร ไม่ใช่แค่ความเร็วในขณะเดียว"
-          : "If an answer feels confusing, focus on how gravity changes acceleration, not just the speed at one moment."}
+        {copy[locale].lesson.lumiHint}
       </p>
       <BlockCompletionControl
         locale={locale}
@@ -585,9 +577,7 @@ function LumiHintBlockView({
 function SimulationHint({ locale }: { locale: Locale }) {
   return (
     <p className="mt-2 text-sm text-[var(--muted)]">
-      {locale === "th"
-        ? "ลองโต้ตอบกับการจำลองก่อนดำเนินการต่อ"
-        : "Interact with the simulation before continuing."}
+      {copy[locale].lesson.simulationHint}
     </p>
   )
 }
@@ -604,16 +594,10 @@ function BlockCompletionControl({
   state: BlockState
 }) {
   const label = state.completed
-    ? locale === "th"
-      ? "บันทึกแล้ว"
-      : "Saved"
+    ? copy[locale].lesson.saved
     : state.saving
-      ? locale === "th"
-        ? "กำลังบันทึก..."
-        : "Saving..."
-      : locale === "th"
-        ? "ดำเนินการต่อ"
-        : "Continue"
+      ? copy[locale].lesson.saving
+      : copy[locale].lesson.continue
 
   return (
     <div className="mt-4">

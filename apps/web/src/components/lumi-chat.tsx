@@ -4,6 +4,7 @@ import { useId, useMemo, useState } from "react"
 import Link from "next/link"
 import { Send } from "lucide-react"
 import type { Locale, LumiChatResponse, LumiMessage } from "@learnify/shared"
+import { copy } from "@/lib/copy"
 
 type LumiChatProps = {
   locale: Locale
@@ -19,40 +20,6 @@ type ChatMessage = Pick<LumiMessage, "id" | "role" | "message"> & {
   pending?: boolean
 }
 
-const starterPrompts = {
-  en: [
-    "Why does stronger gravity make things fall faster?",
-    "How does net force change motion?",
-    "Why does a projectile follow a curved path?",
-  ],
-  th: [
-    "ทำไมแรงโน้มถ่วงที่มากขึ้นทำให้วัตถุตกเร็วขึ้น?",
-    "แรงลัพธ์เปลี่ยนการเคลื่อนที่อย่างไร?",
-    "ทำไมวัตถุที่ถูกขว้างจึงมีเส้นทางโค้ง?",
-  ],
-} satisfies Record<Locale, string[]>
-
-const labels = {
-  en: {
-    title: "Lumi",
-    body: "Ask about the Physics module: gravity, projectile motion, or forces.",
-    input: "Ask Lumi about Physics",
-    send: "Send",
-    sending: "Sending...",
-    error: "Lumi could not respond. Try again.",
-    relatedLesson: "Open related lesson",
-  },
-  th: {
-    title: "Lumi",
-    body: "ถามเกี่ยวกับบทเรียนฟิสิกส์: แรงโน้มถ่วง โพรเจกไทล์ หรือแรง",
-    input: "ถาม Lumi เกี่ยวกับฟิสิกส์",
-    send: "ส่ง",
-    sending: "กำลังส่ง...",
-    error: "Lumi ยังตอบไม่ได้ ลองอีกครั้ง",
-    relatedLesson: "เปิดบทเรียนที่เกี่ยวข้อง",
-  },
-} satisfies Record<Locale, Record<string, string>>
-
 export function LumiChat({
   locale,
   initialConversationId,
@@ -62,23 +29,21 @@ export function LumiChat({
   titleOverride,
   bodyOverride,
 }: LumiChatProps) {
-  const t = labels[locale]
+  const t = copy[locale].lumi
   const inputId = useId()
   const title = titleOverride ?? t.title
   const body = bodyOverride ?? t.body
+  const isCompact = variant === "compact"
   const [conversationId, setConversationId] = useState(initialConversationId)
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [input, setInput] = useState("")
-  const [suggestedPrompts, setSuggestedPrompts] = useState(
-    starterPrompts[locale]
-  )
+  const [suggestedPrompts, setSuggestedPrompts] = useState(t.starterPrompts)
   const [relatedLessonSlug, setRelatedLessonSlug] = useState<string | null>(
     null
   )
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const canSend = input.trim().length > 0 && !isSending
-
   const visibleMessages = useMemo(() => messages.slice(-30), [messages])
 
   async function sendMessage(message: string) {
@@ -155,16 +120,20 @@ export function LumiChat({
     }
   }
 
-  const isCompact = variant === "compact"
-
   return (
     <section
       className={
-        isCompact ? "grid gap-3" : "grid gap-4 lg:grid-cols-[1fr_280px]"
+        isCompact ? "grid gap-3" : "grid gap-4 lg:grid-cols-[1fr_300px]"
       }
     >
       <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-strong)]">
-        <div className={isCompact ? "border-b border-[var(--border)] p-4" : "border-b border-[var(--border)] p-5"}>
+        <div
+          className={
+            isCompact
+              ? "border-b border-[var(--border)] px-4 py-3"
+              : "border-b border-[var(--border)] p-5"
+          }
+        >
           {isCompact ? (
             <h2 className="text-base font-semibold">{title}</h2>
           ) : (
@@ -178,7 +147,7 @@ export function LumiChat({
         <div
           className={
             isCompact
-              ? "grid min-h-[220px] content-end gap-3 p-4"
+              ? "grid min-h-[160px] content-end gap-3 p-4"
               : "grid min-h-[420px] content-end gap-3 p-5"
           }
         >
@@ -189,8 +158,8 @@ export function LumiChat({
               <div
                 className={
                   message.role === "user"
-                    ? "ml-auto max-w-[80%] rounded-[var(--radius)] bg-[var(--text)] px-3 py-2 text-sm leading-6 text-white"
-                    : "mr-auto max-w-[80%] rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm leading-6"
+                    ? "ml-auto max-w-[82%] rounded-[var(--radius)] bg-[var(--text)] px-3 py-2 text-sm leading-6 text-white"
+                    : "mr-auto max-w-[82%] rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm leading-6"
                 }
                 key={message.id}
               >
@@ -201,7 +170,11 @@ export function LumiChat({
         </div>
 
         <form
-          className="border-t border-[var(--border)] p-4"
+          className={
+            isCompact
+              ? "border-t border-[var(--border)] p-3"
+              : "border-t border-[var(--border)] p-4"
+          }
           onSubmit={(event) => {
             event.preventDefault()
             void sendMessage(input)
@@ -216,16 +189,18 @@ export function LumiChat({
               id={inputId}
               onChange={(event) => setInput(event.target.value)}
               placeholder={t.input}
-              rows={2}
+              rows={isCompact ? 1 : 2}
               value={input}
             />
             <button
-              className="inline-flex h-11 items-center gap-2 rounded-[var(--radius)] bg-[var(--text)] px-4 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-[var(--radius)] bg-[var(--text)] px-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 sm:px-4"
               disabled={!canSend}
               type="submit"
             >
               <Send aria-hidden="true" size={16} />
-              {isSending ? t.sending : t.send}
+              <span className={isCompact ? "sr-only sm:not-sr-only" : ""}>
+                {isSending ? t.sending : t.send}
+              </span>
             </button>
           </div>
           {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
@@ -239,16 +214,10 @@ export function LumiChat({
             : "rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-strong)] p-4"
         }
       >
-        <div
-          className={
-            isCompact
-              ? "grid gap-2 md:grid-cols-3"
-              : "grid gap-2"
-          }
-        >
+        <div className={isCompact ? "grid gap-2 md:grid-cols-3" : "grid gap-2"}>
           {suggestedPrompts.map((prompt) => (
             <button
-              className="rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-left text-sm leading-5 transition-colors hover:border-[var(--brand)]"
+              className="rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-left text-sm leading-5 transition-colors hover:border-[var(--brand)] disabled:opacity-60"
               disabled={isSending}
               key={prompt}
               onClick={() => void sendMessage(prompt)}

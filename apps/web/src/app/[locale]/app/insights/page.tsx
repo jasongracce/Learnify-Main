@@ -2,6 +2,7 @@ import Link from "next/link"
 import { ArrowRight, Lightbulb, Target, TrendingUp } from "lucide-react"
 import type { Locale } from "@learnify/shared"
 import { selectLocalizedText } from "@learnify/core"
+import { AppNav } from "@/components/app-nav"
 import { requireBetaUser } from "@/lib/auth/protected"
 import { getStudentDashboardData } from "@/lib/dashboard-data"
 import { copy } from "@/lib/copy"
@@ -34,8 +35,10 @@ export default async function InsightsPage({ params }: InsightsPageProps) {
   )
 
   return (
-    <main className="learnify-container py-8">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <>
+      <AppNav active="insights" locale={locale} />
+      <main className="learnify-container py-8">
+      <div className="mb-6 flex flex-col gap-3 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{t.title}</h1>
           <p className="mt-2 max-w-2xl leading-7 text-[var(--muted)]">
@@ -107,6 +110,7 @@ export default async function InsightsPage({ params }: InsightsPageProps) {
           </div>
         </div>
       </section>
-    </main>
+      </main>
+    </>
   )
 }

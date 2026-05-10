@@ -7,6 +7,9 @@ type Copy = {
     signup: string
     dashboard: string
     courses: string
+    lumi: string
+    insights: string
+    logout: string
     language: string
   }
   home: {
@@ -80,6 +83,23 @@ type Copy = {
     askLumi: string
     askLumiBody: string
     nextLesson: string
+    blocksSaved: (completed: number, total: number) => string
+    saved: string
+    saving: string
+    continue: string
+    gravity: string
+    simulationHint: string
+    lumiHint: string
+  }
+  lumi: {
+    title: string
+    body: string
+    input: string
+    send: string
+    sending: string
+    error: string
+    relatedLesson: string
+    starterPrompts: string[]
   }
 }
 
@@ -91,6 +111,9 @@ export const copy = {
       signup: "Sign up",
       dashboard: "Dashboard",
       courses: "Courses",
+      lumi: "Lumi",
+      insights: "Insights",
+      logout: "Log out",
       language: "TH",
     },
     home: {
@@ -173,8 +196,30 @@ export const copy = {
       lumi: "Lumi",
       askLumi: "Ask Lumi about this lesson",
       askLumiBody:
-        "Ask a quick question about this lesson and Lumi will keep the explanation tied to what you are learning here.",
+        "Ask a quick question and Lumi will keep the explanation tied to this lesson.",
       nextLesson: "Next lesson",
+      blocksSaved: (completed, total) => `${completed}/${total} blocks saved`,
+      saved: "Saved",
+      saving: "Saving...",
+      continue: "Continue",
+      gravity: "Gravity",
+      simulationHint: "Interact with the simulation before continuing.",
+      lumiHint:
+        "If an answer feels confusing, focus on how gravity changes acceleration, not just speed at one moment.",
+    },
+    lumi: {
+      title: "Lumi",
+      body: "Ask about the Physics module: gravity, projectile motion, or forces.",
+      input: "Ask Lumi about Physics",
+      send: "Send",
+      sending: "Sending...",
+      error: "Lumi could not respond. Try again.",
+      relatedLesson: "Open related lesson",
+      starterPrompts: [
+        "Why does stronger gravity make things fall faster?",
+        "How does net force change motion?",
+        "Why does a projectile follow a curved path?",
+      ],
     },
   },
   th: {
@@ -184,6 +229,9 @@ export const copy = {
       signup: "สมัคร",
       dashboard: "แดชบอร์ด",
       courses: "คอร์ส",
+      lumi: "Lumi",
+      insights: "ข้อมูลเชิงลึก",
+      logout: "ออกจากระบบ",
       language: "EN",
     },
     home: {
@@ -200,27 +248,26 @@ export const copy = {
     waitlist: {
       title: "เข้าร่วมรายชื่อรอ private beta",
       body:
-        "การเข้าถึงจำกัดเฉพาะผู้เรียนที่ได้รับอนุมัติผ่าน Supabase waitlist gate",
+        "การเข้าใช้งานจำกัดเฉพาะผู้ที่ได้รับอนุมัติผ่านรายชื่อรอของ Supabase",
       email: "อีเมล",
       name: "ชื่อ",
       role: "บทบาท",
       gradeLevel: "ระดับชั้น",
-      interestReason: "ทำไมคุณสนใจ Learnify",
+      interestReason: "ทำไมคุณสนใจ Learnify?",
       submit: "เข้าร่วมรายชื่อรอ",
       saving: "กำลังบันทึก...",
       successPending:
         "คุณอยู่ในรายชื่อรอแล้ว เราจะอนุมัติ beta access จาก Supabase",
       successApproved:
-        "คุณได้รับอนุมัติ beta access แล้ว ใช้หน้า Login เมื่อเชื่อม auth แล้ว",
-      error: "บันทึกข้อมูลไม่สำเร็จ กรุณาตรวจฟอร์มแล้วลองอีกครั้ง",
+        "คุณได้รับอนุมัติ beta access แล้ว ใช้หน้าเข้าสู่ระบบได้เมื่อ auth พร้อม",
+      error: "บันทึกข้อมูลไม่สำเร็จ ตรวจแบบฟอร์มแล้วลองอีกครั้ง",
     },
     auth: {
       loginTitle: "เข้าสู่ระบบ",
       signupTitle: "สร้างบัญชี",
       body:
         "ใช้ Google หรืออีเมลเพื่อขอเข้า beta ระบบจะตรวจรายชื่อ beta ก่อนเปิดแอป",
-      source:
-        "หน้านี้คือปลายทางของปุ่ม Login บน learnify.academy",
+      source: "หน้านี้คือปลายทางของปุ่ม Login บน learnify.academy",
       waitlist: "เข้าร่วมรายชื่อรอก่อน",
       google: "ดำเนินการต่อด้วย Google",
       submit: "ส่งลิงก์เข้าสู่ระบบทางอีเมล",
@@ -251,13 +298,13 @@ export const copy = {
     courses: {
       title: "คอร์ส",
       body:
-        "private beta เริ่มจากคอร์สฟิสิกส์ที่เผยแพร่แล้วหนึ่งคอร์สและโมดูลสามบทเรียน",
+        "private beta เริ่มจากคอร์สฟิสิกส์หนึ่งคอร์สและโมดูลสามบทเรียน",
       module: "โมดูล",
       lessons: "บทเรียน",
       start: "เริ่มบทเรียน",
     },
     lesson: {
-      backToCourse: "กลับไปคอร์ส",
+      backToCourse: "กลับไปที่คอร์ส",
       minutes: "นาที",
       question: "คำถาม",
       checkAnswer: "ตรวจคำตอบ",
@@ -266,8 +313,31 @@ export const copy = {
       lumi: "Lumi",
       askLumi: "ถาม Lumi เกี่ยวกับบทเรียนนี้",
       askLumiBody:
-        "ถามคำถามสั้นๆ เกี่ยวกับบทเรียนนี้ แล้ว Lumi จะอธิบายให้เชื่อมกับสิ่งที่กำลังเรียนอยู่",
+        "ถามคำถามสั้นๆ แล้ว Lumi จะอธิบายให้เชื่อมกับบทเรียนนี้",
       nextLesson: "บทเรียนถัดไป",
+      blocksSaved: (completed, total) =>
+        `บันทึกแล้ว ${completed}/${total} บล็อก`,
+      saved: "บันทึกแล้ว",
+      saving: "กำลังบันทึก...",
+      continue: "ดำเนินการต่อ",
+      gravity: "แรงโน้มถ่วง",
+      simulationHint: "ลองปรับการจำลองก่อนดำเนินการต่อ",
+      lumiHint:
+        "ถ้าคำตอบยังสับสน ให้ดูว่าแรงโน้มถ่วงเปลี่ยนความเร่งอย่างไร ไม่ใช่ดูแค่ความเร็วในช่วงเวลาเดียว",
+    },
+    lumi: {
+      title: "Lumi",
+      body: "ถามเกี่ยวกับฟิสิกส์: แรงโน้มถ่วง โพรเจกไทล์ หรือแรง",
+      input: "ถาม Lumi เกี่ยวกับฟิสิกส์",
+      send: "ส่ง",
+      sending: "กำลังส่ง...",
+      error: "Lumi ตอบไม่ได้ในตอนนี้ ลองอีกครั้ง",
+      relatedLesson: "เปิดบทเรียนที่เกี่ยวข้อง",
+      starterPrompts: [
+        "ทำไมแรงโน้มถ่วงที่มากขึ้นทำให้วัตถุตกเร็วขึ้น?",
+        "แรงลัพธ์เปลี่ยนการเคลื่อนที่อย่างไร?",
+        "ทำไมโพรเจกไทล์จึงเคลื่อนที่เป็นเส้นโค้ง?",
+      ],
     },
   },
 } satisfies Record<Locale, Copy>
