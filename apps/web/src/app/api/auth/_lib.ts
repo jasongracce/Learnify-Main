@@ -5,6 +5,7 @@ import {
   upsertStudentProfile,
 } from "@learnify/database"
 import type { AuthEmailRequestInput, Locale } from "@learnify/shared"
+import { requireSupabaseServiceEnv } from "@/lib/env"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export function authJsonError(error: string, status = 400) {
@@ -22,7 +23,9 @@ export async function finishAuthenticatedAccess(input: {
   locale: Locale
 }) {
   const authSupabase = await createSupabaseServerClient()
-  const serviceSupabase = createSupabaseServiceClientFromEnv(process.env)
+  const serviceSupabase = createSupabaseServiceClientFromEnv(
+    requireSupabaseServiceEnv()
+  )
   const access = await getWaitlistAccessByEmail({
     supabase: serviceSupabase,
     email: input.email,
@@ -63,7 +66,9 @@ export async function requireApprovedBetaEmail(input: {
   email: string
   locale: Locale
 }) {
-  const serviceSupabase = createSupabaseServiceClientFromEnv(process.env)
+  const serviceSupabase = createSupabaseServiceClientFromEnv(
+    requireSupabaseServiceEnv()
+  )
   const access = await getWaitlistAccessByEmail({
     supabase: serviceSupabase,
     email: input.email,

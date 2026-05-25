@@ -289,7 +289,36 @@ generateRuleBasedLumiResponse(input)
 
 Avoid scattering direct `supabase.from(...)` queries through UI components.
 
-Milestone 2 adds `packages/ai` for Anthropic, RAG, prompts, structured output validation, and safety checks.
+Milestone 2 adds `packages/ai` for OpenAI, RAG, prompts, structured output validation, and safety checks.
+
+Initial `packages/ai` foundation:
+
+```txt
+Lumi chat input/output schemas
+verified/published source filtering
+prompt contract construction
+provider-neutral structured JSON interface
+OpenAI Responses API provider adapter
+deterministic provider/fallback tests
+```
+
+The package should not call a live model directly from UI code. Route handlers should collect lesson, student, and retrieval context, then call package-level AI functions through a provider adapter. The rule-based Lumi path remains the fallback until live AI is explicitly enabled.
+
+Lumi route mode:
+
+```txt
+LEARNIFY_LUMI_MODE=rag_ai  # default, uses live provider when configured
+LEARNIFY_LUMI_MODE=mock    # deterministic provider for local testing
+LEARNIFY_LUMI_MODE=rule    # force milestone 1 rule-based Lumi
+```
+
+Live provider config:
+
+```txt
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-5.4
+OPENAI_MAX_OUTPUT_TOKENS=900
+```
 
 ## 10. State Management
 
@@ -550,7 +579,7 @@ Do not ship open-ended AI chat in milestone 1.
 Milestone 2:
 
 ```txt
-Anthropic-powered Lumi Chat
+OpenAI-powered Lumi Chat
 verified content retrieval
 RAG
 conversation history

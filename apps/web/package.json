@@ -7,10 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
+    "test": "pnpm run test:api",
+    "test:api": "vitest run --config vitest.config.cjs",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@learnify/ai": "workspace:*",
     "@learnify/core": "workspace:*",
     "@learnify/database": "workspace:*",
     "@learnify/design-tokens": "workspace:*",
@@ -35,6 +38,7 @@
     "eslint": "^9.24.0",
     "eslint-config-next": "^15.3.1",
     "tailwindcss": "^4.1.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.1"
   }
 }

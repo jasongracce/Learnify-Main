@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server"
 import {
   createSupabaseServiceClientFromEnv,
-  getSupabaseServerConfig,
   getWaitlistAccessByEmail,
 } from "@learnify/database"
 import { accessStatusQuerySchema } from "@learnify/shared"
+import {
+  getSupabaseServiceEnvStatus,
+  requireSupabaseServiceEnv,
+} from "@/lib/env"
 
 export async function GET(request: Request) {
-  const config = getSupabaseServerConfig(process.env)
+  const config = getSupabaseServiceEnvStatus()
 
   if (!config.configured) {
     return NextResponse.json(
@@ -35,7 +38,9 @@ export async function GET(request: Request) {
   }
 
   try {
-    const supabase = createSupabaseServiceClientFromEnv(process.env)
+    const supabase = createSupabaseServiceClientFromEnv(
+      requireSupabaseServiceEnv()
+    )
     const status = await getWaitlistAccessByEmail({
       supabase,
       email: parsed.data.email,

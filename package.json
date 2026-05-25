@@ -8,7 +8,9 @@
     "build": "pnpm --filter web build",
     "lint": "pnpm --filter web lint",
     "typecheck": "pnpm --filter web typecheck",
-    "test": "pnpm --filter @learnify/core test"
+    "test": "pnpm --filter web test:api && pnpm --filter @learnify/core test && pnpm --filter @learnify/ai test && pnpm --filter @learnify/database test",
+    "test:ai": "pnpm --filter @learnify/ai test",
+    "test:rag": "pnpm --filter @learnify/database test:rag"
   },
   "devDependencies": {
     "prettier": "^3.5.3",

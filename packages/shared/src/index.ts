@@ -79,6 +79,15 @@ export type QuestionDifficulty = "easy" | "medium" | "hard"
 export type ConfidenceLevel = "low" | "medium" | "high"
 export type LumiConfidence = "low" | "medium" | "high"
 export type LumiMessageRole = "user" | "assistant" | "system"
+export const lumiSourceKinds = [
+  "published_lesson",
+  "verified_rag_chunk",
+  "question",
+  "skill",
+  "recent_mistake",
+] as const
+
+export type LumiSourceKind = (typeof lumiSourceKinds)[number]
 
 export type LearnifyCourse = {
   id: string
@@ -249,7 +258,19 @@ export const lumiChatResponseSchema = z.object({
   conversationId: z.string().uuid(),
   suggestedPrompts: z.array(z.string()),
   relatedLessonSlug: z.string().optional(),
+  suggestedNextAction: z.string().trim().min(1).optional(),
   confidence: z.enum(["low", "medium", "high"]),
+  sources: z
+    .array(
+      z.object({
+        id: z.string().trim().min(1),
+        title: z.string().trim().min(1).optional(),
+        kind: z.enum(lumiSourceKinds).optional(),
+        lessonSlug: z.string().trim().min(1).optional(),
+        courseSlug: z.string().trim().min(1).optional(),
+      })
+    )
+    .optional(),
 })
 
 export type LumiChatResponse = z.infer<typeof lumiChatResponseSchema>

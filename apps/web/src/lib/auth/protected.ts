@@ -4,6 +4,7 @@ import {
   getWaitlistAccessByEmail,
 } from "@learnify/database"
 import type { Locale } from "@learnify/shared"
+import { requireSupabaseServiceEnv } from "@/lib/env"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export async function requireBetaUser(locale: Locale) {
@@ -17,7 +18,9 @@ export async function requireBetaUser(locale: Locale) {
     redirect(`/${locale}/auth/login`)
   }
 
-  const serviceSupabase = createSupabaseServiceClientFromEnv(process.env)
+  const serviceSupabase = createSupabaseServiceClientFromEnv(
+    requireSupabaseServiceEnv()
+  )
   const access = await getWaitlistAccessByEmail({
     supabase: serviceSupabase,
     email: user.email,

@@ -5,6 +5,10 @@ import Link from "next/link"
 import { Send } from "lucide-react"
 import type { Locale, LumiChatResponse, LumiMessage } from "@learnify/shared"
 import { copy } from "@/lib/copy"
+import {
+  getLumiSourceDisplay,
+  type LumiChatSource,
+} from "@/lib/lumi-sources"
 
 type LumiChatProps = {
   locale: Locale
@@ -18,6 +22,8 @@ type LumiChatProps = {
 
 type ChatMessage = Pick<LumiMessage, "id" | "role" | "message"> & {
   pending?: boolean
+  sources?: LumiChatSource[]
+  suggestedNextAction?: string
 }
 
 export function LumiChat({
@@ -108,6 +114,8 @@ export function LumiChat({
           id: `local-assistant-${Date.now()}`,
           role: "assistant",
           message: payload.answer,
+          sources: payload.sources,
+          suggestedNextAction: payload.suggestedNextAction,
         },
       ])
     } catch {
@@ -163,7 +171,51 @@ export function LumiChat({
                 }
                 key={message.id}
               >
-                {message.message}
+                <p>{message.message}</p>
+                {message.role === "assistant" &&
+                (message.suggestedNextAction ||
+                  (message.sources && message.sources.length > 0)) ? (
+                  <div className="mt-3 border-t border-[var(--border)] pt-3 text-xs leading-5 text-[var(--muted)]">
+                    {message.suggestedNextAction ? (
+                      <p>
+                        <span className="font-medium text-[var(--text)]">
+                          Next:
+                        </span>{" "}
+                        {message.suggestedNextAction}
+                      </p>
+                    ) : null}
+                    {message.sources && message.sources.length > 0 ? (
+                      <div className="mt-2">
+                        <p className="font-medium text-[var(--text)]">
+                          Sources
+                        </p>
+                        <ul className="mt-1 grid gap-1">
+                          {message.sources.map((source) => {
+                            const sourceDisplay = getLumiSourceDisplay({
+                              source,
+                              locale,
+                            })
+
+                            return (
+                              <li key={source.id}>
+                                {sourceDisplay.href ? (
+                                  <Link
+                                    className="underline decoration-[var(--border)] underline-offset-2 transition-colors hover:text-[var(--text)]"
+                                    href={sourceDisplay.href}
+                                  >
+                                    {sourceDisplay.text}
+                                  </Link>
+                                ) : (
+                                  <span>{sourceDisplay.text}</span>
+                                )}
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ))
           )}

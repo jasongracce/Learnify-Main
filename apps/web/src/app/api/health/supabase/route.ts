@@ -2,11 +2,14 @@ import { NextResponse } from "next/server"
 import {
   checkSupabaseWaitlistTable,
   createSupabaseServiceClientFromEnv,
-  getSupabaseServerConfig,
 } from "@learnify/database"
+import {
+  getSupabaseServiceEnvStatus,
+  requireSupabaseServiceEnv,
+} from "@/lib/env"
 
 export async function GET() {
-  const config = getSupabaseServerConfig(process.env)
+  const config = getSupabaseServiceEnvStatus()
 
   if (!config.configured) {
     return NextResponse.json(
@@ -20,7 +23,9 @@ export async function GET() {
   }
 
   try {
-    const supabase = createSupabaseServiceClientFromEnv(process.env)
+    const supabase = createSupabaseServiceClientFromEnv(
+      requireSupabaseServiceEnv()
+    )
     const result = await checkSupabaseWaitlistTable({ supabase })
 
     return NextResponse.json({

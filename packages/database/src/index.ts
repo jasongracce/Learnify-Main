@@ -121,6 +121,74 @@ export type LumiMessageRecord = {
   created_at: string
 }
 
+export type RagDocumentRecord = {
+  id: string
+  title: string
+  subject: string | null
+  grade_level: string | null
+  language: Locale
+  source_type: string | null
+  source_url: string | null
+  status: "uploaded" | "processing" | "processed" | "failed" | "archived"
+  verified: boolean
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export type RagChunkRecord = {
+  id: string
+  document_id: string
+  chunk_index: number
+  content: string
+  metadata: Record<string, unknown>
+  verified: boolean
+  created_at: string
+  updated_at: string
+  rag_documents?: RagDocumentRecord | RagDocumentRecord[] | null
+}
+
+type RagChunkVectorMatchRecord = {
+  id: string
+  document_id: string
+  document_title: string
+  content: string
+  locale: Locale
+  subject: string | null
+  source_type: string | null
+  source_url: string | null
+  chunk_index: number
+  metadata: Record<string, unknown>
+  score: number
+  created_at: string
+}
+
+export type RetrievedRagChunk = {
+  id: string
+  documentId: string
+  documentTitle: string
+  content: string
+  locale: Locale
+  subject: string | null
+  sourceType: string | null
+  sourceUrl: string | null
+  chunkIndex: number
+  metadata: Record<string, unknown>
+  score: number
+  createdAt: string
+}
+
+export type RetrieveVerifiedRagChunksInput = {
+  supabase: SupabaseClient
+  locale: Locale
+  query?: string
+  subject?: string
+  lessonSlug?: string
+  courseSlug?: string
+  limit?: number
+  embedding?: number[]
+}
+
 export type LessonProgressSummary = {
   lessonId: string
   lessonSlug: string
@@ -884,6 +952,347 @@ export async function getRecentQuestionAttemptsForUser(input: {
       } satisfies QuestionAttemptSummary
     })
     .filter((record): record is QuestionAttemptSummary => Boolean(record))
+}
+
+export async function retrieveVerifiedRagChunks(
+  input: RetrieveVerifiedRagChunksInput
+): Promise<RetrievedRagChunk[]> {
+  const limit = clampRetrievalLimit(input.limit)
+  const candidateLimit = Math.min(Math.max(limit * 4, 20), 100)
+  const query = normalizeRetrievalQuery(input.query)
+
+  if (input.embedding && input.embedding.length > 0) {
+    try {
+      const vectorMatches = await retrieveVerifiedRagChunksByVector({
+        ...input,
+        limit,
+        embedding: input.embedding,
+      })
+
+      if (vectorMatches.length > 0) {
+        return vectorMatches
+      }
+    } catch {
+      // Keyword retrieval remains the production fallback until embeddings are complete.
+    }
+  }
+
+  const [contentMatches, titleMatches] = await Promise.all([
+    fetchVerifiedRagChunkCandidates({
+      ...input,
+      limit: candidateLimit,
+    }),
+    query
+      ? fetchVerifiedRagChunksByDocumentTitle({
+          ...input,
+          limit: candidateLimit,
+          titleQuery: query,
+        })
+      : Promise.resolve([]),
+  ])
+
+  const merged = new Map<string, RetrievedRagChunk>()
+
+  for (const chunk of [...contentMatches, ...titleMatches]) {
+    const existing = merged.get(chunk.id)
+
+    if (!existing || chunk.score > existing.score) {
+      merged.set(chunk.id, chunk)
+    }
+  }
+
+  return [...merged.values()]
+    .map((chunk) => ({
+      ...chunk,
+      score: scoreRetrievedRagChunk(chunk, query),
+    }))
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score
+      }
+
+      return left.chunkIndex - right.chunkIndex
+    })
+    .slice(0, limit)
+}
+
+export async function retrieveVerifiedRagChunksByVector(input: {
+  supabase: SupabaseClient
+  locale: Locale
+  subject?: string
+  lessonSlug?: string
+  courseSlug?: string
+  limit?: number
+  embedding: number[]
+}): Promise<RetrievedRagChunk[]> {
+  const { data, error } = await input.supabase
+    .rpc("match_verified_rag_chunks", {
+      query_embedding: input.embedding,
+      match_locale: input.locale,
+      match_subject: input.subject ?? null,
+      match_course_slug: input.courseSlug ?? null,
+      match_lesson_slug: input.lessonSlug ?? null,
+      match_count: clampRetrievalLimit(input.limit),
+    })
+    .returns<RagChunkVectorMatchRecord[]>()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  if (!Array.isArray(data)) {
+    return []
+  }
+
+  return data.map(mapRagChunkVectorMatchRecord).filter(isRetrievedRagChunk)
+}
+
+async function fetchVerifiedRagChunkCandidates(input: {
+  supabase: SupabaseClient
+  locale: Locale
+  subject?: string
+  lessonSlug?: string
+  courseSlug?: string
+  limit: number
+}) {
+  const { data, error } = await baseVerifiedRagChunkQuery(input.supabase, input)
+    .order("chunk_index", { ascending: true })
+    .limit(input.limit)
+    .returns<RagChunkRecord[]>()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return data.map(mapRagChunkRecord).filter(isRetrievedRagChunk)
+}
+
+async function fetchVerifiedRagChunksByDocumentTitle(input: {
+  supabase: SupabaseClient
+  locale: Locale
+  subject?: string
+  lessonSlug?: string
+  courseSlug?: string
+  limit: number
+  titleQuery: string
+}) {
+  let documentQuery = input.supabase
+    .from("rag_documents")
+    .select("id")
+    .eq("language", input.locale)
+    .eq("status", "processed")
+    .eq("verified", true)
+    .ilike("title", toIlikePattern(input.titleQuery))
+    .limit(25)
+
+  if (input.subject) {
+    documentQuery = documentQuery.eq("subject", input.subject)
+  }
+
+  if (input.lessonSlug) {
+    documentQuery = documentQuery.contains("metadata", {
+      lesson_slug: input.lessonSlug,
+    })
+  }
+
+  if (input.courseSlug) {
+    documentQuery = documentQuery.contains("metadata", {
+      course_slug: input.courseSlug,
+    })
+  }
+
+  const { data: documents, error: documentError } =
+    await documentQuery.returns<{ id: string }[]>()
+
+  if (documentError) {
+    throw new Error(documentError.message)
+  }
+
+  if (documents.length === 0) {
+    return []
+  }
+
+  const { data, error } = await baseVerifiedRagChunkQuery(input.supabase, input)
+    .in(
+      "document_id",
+      documents.map((document) => document.id)
+    )
+    .order("chunk_index", { ascending: true })
+    .limit(input.limit)
+    .returns<RagChunkRecord[]>()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return data.map(mapRagChunkRecord).filter(isRetrievedRagChunk)
+}
+
+function baseVerifiedRagChunkQuery(
+  supabase: SupabaseClient,
+  input: {
+    locale: Locale
+    subject?: string
+    lessonSlug?: string
+    courseSlug?: string
+  }
+) {
+  let query = supabase
+    .from("rag_chunks")
+    .select(
+      [
+        "id",
+        "document_id",
+        "chunk_index",
+        "content",
+        "metadata",
+        "verified",
+        "created_at",
+        "updated_at",
+        "rag_documents!inner(id,title,subject,grade_level,language,source_type,source_url,status,verified,metadata,created_at,updated_at)",
+      ].join(",")
+    )
+    .eq("verified", true)
+    .eq("rag_documents.language", input.locale)
+    .eq("rag_documents.status", "processed")
+    .eq("rag_documents.verified", true)
+
+  if (input.subject) {
+    query = query.eq("rag_documents.subject", input.subject)
+  }
+
+  if (input.lessonSlug) {
+    query = query.contains("metadata", {
+      lesson_slug: input.lessonSlug,
+    })
+  }
+
+  if (input.courseSlug) {
+    query = query.contains("metadata", {
+      course_slug: input.courseSlug,
+    })
+  }
+
+  return query
+}
+
+function mapRagChunkRecord(record: RagChunkRecord) {
+  const document = getJoinedRagDocument(record.rag_documents)
+
+  if (!document) {
+    return null
+  }
+
+  return {
+    id: record.id,
+    documentId: record.document_id,
+    documentTitle: document.title,
+    content: record.content,
+    locale: document.language,
+    subject: document.subject,
+    sourceType: document.source_type,
+    sourceUrl: document.source_url,
+    chunkIndex: Number(record.chunk_index),
+    metadata: normalizeJsonObject(record.metadata),
+    score: 0,
+    createdAt: record.created_at,
+  } satisfies RetrievedRagChunk
+}
+
+function mapRagChunkVectorMatchRecord(record: RagChunkVectorMatchRecord) {
+  return {
+    id: record.id,
+    documentId: record.document_id,
+    documentTitle: record.document_title,
+    content: record.content,
+    locale: record.locale,
+    subject: record.subject,
+    sourceType: record.source_type,
+    sourceUrl: record.source_url,
+    chunkIndex: Number(record.chunk_index),
+    metadata: normalizeJsonObject(record.metadata),
+    score: Number(record.score),
+    createdAt: record.created_at,
+  } satisfies RetrievedRagChunk
+}
+
+function getJoinedRagDocument(
+  value: RagChunkRecord["rag_documents"]
+): RagDocumentRecord | null {
+  const document = Array.isArray(value) ? value[0] : value
+
+  return document ?? null
+}
+
+function scoreRetrievedRagChunk(
+  chunk: RetrievedRagChunk,
+  query: string | undefined
+) {
+  if (!query) {
+    return 1
+  }
+
+  const normalizedQuery = query.toLowerCase()
+  const content = chunk.content.toLowerCase()
+  const title = chunk.documentTitle.toLowerCase()
+  const metadata = JSON.stringify(chunk.metadata).toLowerCase()
+  let score = 0
+
+  if (title.includes(normalizedQuery)) {
+    score += 4
+  }
+
+  if (content.includes(normalizedQuery)) {
+    score += 3
+  }
+
+  if (metadata.includes(normalizedQuery)) {
+    score += 1
+  }
+
+  for (const token of normalizedQuery.split(/\s+/).filter(Boolean)) {
+    if (title.includes(token)) {
+      score += 2
+    }
+
+    if (content.includes(token)) {
+      score += 1
+    }
+  }
+
+  return score
+}
+
+function isRetrievedRagChunk(
+  value: RetrievedRagChunk | null
+): value is RetrievedRagChunk {
+  return Boolean(value)
+}
+
+function normalizeRetrievalQuery(query?: string) {
+  const normalized = query?.trim().replace(/\s+/g, " ")
+
+  return normalized ? normalized.slice(0, 160) : undefined
+}
+
+function toIlikePattern(query: string) {
+  return `%${query.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_")}%`
+}
+
+function clampRetrievalLimit(limit?: number) {
+  if (!Number.isFinite(limit)) {
+    return 6
+  }
+
+  return Math.min(Math.max(Math.trunc(limit ?? 6), 1), 20)
+}
+
+function normalizeJsonObject(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {}
+  }
+
+  return value as Record<string, unknown>
 }
 
 export async function getOrCreateLumiConversation(input: {

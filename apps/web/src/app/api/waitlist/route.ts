@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server"
 import {
   createSupabaseServiceClientFromEnv,
-  getSupabaseServerConfig,
   upsertWaitlistSignup,
 } from "@learnify/database"
 import { waitlistSignupSchema } from "@learnify/shared"
+import {
+  getSupabaseServiceEnvStatus,
+  requireSupabaseServiceEnv,
+} from "@/lib/env"
 
 export async function POST(request: Request) {
-  const config = getSupabaseServerConfig(process.env)
+  const config = getSupabaseServiceEnvStatus()
 
   if (!config.configured) {
     return NextResponse.json(
@@ -33,7 +36,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const supabase = createSupabaseServiceClientFromEnv(process.env)
+    const supabase = createSupabaseServiceClientFromEnv(
+      requireSupabaseServiceEnv()
+    )
     const signup = await upsertWaitlistSignup({
       supabase,
       signup: parsed.data,

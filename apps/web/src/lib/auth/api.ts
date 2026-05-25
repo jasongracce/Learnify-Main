@@ -5,6 +5,7 @@ import {
   upsertStudentProfile,
 } from "@learnify/database"
 import type { Locale } from "@learnify/shared"
+import { requireSupabaseServiceEnv } from "@/lib/env"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export async function requireApiBetaUser(locale: Locale) {
@@ -26,7 +27,9 @@ export async function requireApiBetaUser(locale: Locale) {
     }
   }
 
-  const serviceSupabase = createSupabaseServiceClientFromEnv(process.env)
+  const serviceSupabase = createSupabaseServiceClientFromEnv(
+    requireSupabaseServiceEnv()
+  )
   const access = await getWaitlistAccessByEmail({
     supabase: serviceSupabase,
     email: user.email,
