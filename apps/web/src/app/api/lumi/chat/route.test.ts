@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
-  checkInMemoryRateLimit: vi.fn(),
+  consumeRateLimit: vi.fn(),
   createLiveLumiAiProvider: vi.fn(),
   createMockLumiAiProvider: vi.fn(),
   createOpenAiEmbeddingProviderFromEnv: vi.fn(),
+  createSupabaseServiceClientFromEnv: vi.fn(),
   generateLumiAiRouteResponse: vi.fn(),
   generateRuleBasedLumiChatResponse: vi.fn(),
   getLessonProgressForUser: vi.fn(),
@@ -18,6 +19,8 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock("@learnify/database", () => ({
+  consumeRateLimit: mocks.consumeRateLimit,
+  createSupabaseServiceClientFromEnv: mocks.createSupabaseServiceClientFromEnv,
   getLessonProgressForUser: mocks.getLessonProgressForUser,
   getOrCreateLumiConversation: mocks.getOrCreateLumiConversation,
   getRecentQuestionAttemptsForUser: mocks.getRecentQuestionAttemptsForUser,
@@ -49,7 +52,6 @@ vi.mock("@/lib/auth/api", () => ({
 }))
 
 vi.mock("@/lib/in-memory-rate-limit", () => ({
-  checkInMemoryRateLimit: mocks.checkInMemoryRateLimit,
   getRequestIpAddress: mocks.getRequestIpAddress,
 }))
 
@@ -64,6 +66,7 @@ const { POST } = await import("./route")
 const conversationId = "00000000-0000-4000-8000-000000000001"
 const userId = "00000000-0000-4000-8000-000000000002"
 const supabase = { from: vi.fn() }
+const limiterSupabase = { rpc: vi.fn() }
 
 function createLumiRequest(body: Record<string, unknown> = {}) {
   return new Request("http://learnify.test/api/lumi/chat", {
@@ -102,7 +105,10 @@ function setDefaultMocks() {
   vi.stubEnv("OPENAI_MAX_OUTPUT_TOKENS", "900")
   vi.stubEnv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
   vi.stubEnv("OPENAI_EMBEDDING_DIMENSIONS", "1536")
-  mocks.checkInMemoryRateLimit.mockReturnValue({
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://supabase.test")
+  vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service-role-key")
+  mocks.createSupabaseServiceClientFromEnv.mockReturnValue(limiterSupabase)
+  mocks.consumeRateLimit.mockResolvedValue({
     allowed: true,
     limit: 60,
     remaining: 59,
@@ -302,7 +308,7 @@ describe("POST /api/lumi/chat", () => {
     })
   })
 
-  it("falls back to rule-based Lumi when the live provider is unavailable", async () => {
+  it("uses the AI fallback when the live provider is unavailable", async () => {
     vi.stubEnv("LEARNIFY_LUMI_MODE", "rag_ai")
     vi.stubEnv("OPENAI_API_KEY", "openai-key")
     mocks.generateLumiAiRouteResponse.mockResolvedValue({
@@ -325,7 +331,7 @@ describe("POST /api/lumi/chat", () => {
     const payload = await response.json()
 
     expect(response.status).toBe(200)
-    expect(payload.answer).toBe("Rule-based Lumi answer.")
+    expect(payload.answer).toBe("AI fallback answer.")
     expect(mocks.createLiveLumiAiProvider).toHaveBeenCalledOnce()
     expect(mocks.createOpenAiEmbeddingProviderFromEnv).toHaveBeenCalledOnce()
     expect(assistantInsertMetadata()).toMatchObject({
@@ -448,7 +454,7 @@ describe("POST /api/lumi/chat", () => {
     const payload = await response.json()
 
     expect(response.status).toBe(200)
-    expect(payload.answer).toBe("Rule-based Lumi answer.")
+    expect(payload.answer).toBe("Invalid citation fallback.")
     expect(assistantInsertMetadata()).toMatchObject({
       fallbackReason: "invalid_citations",
       ruleBasedFallback: true,
@@ -489,7 +495,7 @@ describe("POST /api/lumi/chat", () => {
   })
 
   it("returns 429 when the IP rate limit is exceeded", async () => {
-    mocks.checkInMemoryRateLimit.mockReturnValueOnce({
+    mocks.consumeRateLimit.mockResolvedValueOnce({
       allowed: false,
       limit: 60,
       remaining: 0,
@@ -504,5 +510,70 @@ describe("POST /api/lumi/chat", () => {
     expect(response.headers.get("Retry-After")).toBe("10")
     expect(payload.retryAfterSeconds).toBe(10)
     expect(mocks.requireApiBetaUser).not.toHaveBeenCalled()
+    expect(mocks.consumeRateLimit).toHaveBeenCalledWith({
+      supabase: limiterSupabase,
+      key: "203.0.113.10",
+      namespace: "lumi-chat-ip",
+      limit: 60,
+      windowSeconds: 60,
+    })
+  })
+
+  it("returns 429 when the user rate limit is exceeded after auth", async () => {
+    mocks.consumeRateLimit
+      .mockResolvedValueOnce({
+        allowed: true,
+        limit: 60,
+        remaining: 59,
+        resetAtMs: Date.now() + 60_000,
+        retryAfterSeconds: 0,
+      })
+      .mockResolvedValueOnce({
+        allowed: false,
+        limit: 20,
+        remaining: 0,
+        resetAtMs: Date.now() + 12_000,
+        retryAfterSeconds: 12,
+      })
+
+    const response = await postLumiChat()
+    const payload = await response.json()
+
+    expect(response.status).toBe(429)
+    expect(response.headers.get("Retry-After")).toBe("12")
+    expect(payload.retryAfterSeconds).toBe(12)
+    expect(mocks.consumeRateLimit).toHaveBeenNthCalledWith(2, {
+      supabase: limiterSupabase,
+      key: userId,
+      namespace: "lumi-chat-user",
+      limit: 20,
+      windowSeconds: 60,
+    })
+    expect(mocks.getOrCreateLumiConversation).not.toHaveBeenCalled()
+  })
+
+  it("returns generic 503 when the rate limiter service fails", async () => {
+    mocks.consumeRateLimit.mockRejectedValueOnce(new Error("rpc unavailable"))
+
+    const response = await postLumiChat()
+    const payload = await response.json()
+
+    expect(response.status).toBe(503)
+    expect(payload.error).toBe("Lumi is temporarily unavailable. Please try again soon.")
+    expect(payload.error).not.toContain("rpc unavailable")
+    expect(mocks.requireApiBetaUser).not.toHaveBeenCalled()
+  })
+
+  it("returns a generic error when internal route work fails", async () => {
+    mocks.getOrCreateLumiConversation.mockRejectedValueOnce(
+      new Error("raw database failure")
+    )
+
+    const response = await postLumiChat()
+    const payload = await response.json()
+
+    expect(response.status).toBe(500)
+    expect(payload.error).toBe("Could not save the Lumi chat response.")
+    expect(payload.error).not.toContain("raw database failure")
   })
 })

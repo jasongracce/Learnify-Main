@@ -8,6 +8,8 @@ import {
   EmbeddingProviderError,
 } from "@learnify/ai"
 import {
+  consumeRateLimit,
+  createSupabaseServiceClientFromEnv,
   getRecentQuestionAttemptsForUser,
   getLessonProgressForUser,
   getOrCreateLumiConversation,
@@ -23,11 +25,8 @@ import {
 } from "@learnify/shared"
 import { generateRuleBasedLumiChatResponse } from "@learnify/core"
 import { requireApiBetaUser } from "@/lib/auth/api"
-import {
-  checkInMemoryRateLimit,
-  getRequestIpAddress,
-} from "@/lib/in-memory-rate-limit"
-import { getLumiEnv, type LumiEnv } from "@/lib/env"
+import { getRequestIpAddress } from "@/lib/in-memory-rate-limit"
+import { getLumiEnv, requireSupabaseServiceEnv, type LumiEnv } from "@/lib/env"
 import {
   createLiveLumiAiProvider,
   createMockLumiAiProvider,
@@ -36,12 +35,12 @@ import {
 
 const LUMI_CHAT_IP_RATE_LIMIT = {
   limit: 60,
-  windowMs: 60_000,
+  windowSeconds: 60,
 }
 
 const LUMI_CHAT_USER_RATE_LIMIT = {
   limit: 20,
-  windowMs: 60_000,
+  windowSeconds: 60,
 }
 
 type RagRetrievalMetadata = {
@@ -74,14 +73,25 @@ export async function POST(request: Request) {
     )
   }
 
-  const ipLimit = checkInMemoryRateLimit({
-    identifier: getRequestIpAddress(request),
+  const limiterSupabase = createLumiLimiterSupabase()
+
+  if ("response" in limiterSupabase) {
+    return limiterSupabase.response
+  }
+
+  const ipLimit = await consumeLumiRateLimit({
+    supabase: limiterSupabase.supabase,
+    key: getRequestIpAddress(request),
     namespace: "lumi-chat-ip",
     ...LUMI_CHAT_IP_RATE_LIMIT,
   })
 
-  if (!ipLimit.allowed) {
-    return createRateLimitResponse(ipLimit.retryAfterSeconds)
+  if ("response" in ipLimit) {
+    return ipLimit.response
+  }
+
+  if (!ipLimit.result.allowed) {
+    return createRateLimitResponse(ipLimit.result.retryAfterSeconds)
   }
 
   const auth = await requireApiBetaUser(parsed.data.locale)
@@ -90,14 +100,19 @@ export async function POST(request: Request) {
     return auth.response
   }
 
-  const userLimit = checkInMemoryRateLimit({
-    identifier: auth.user.id || getRequestIpAddress(request),
+  const userLimit = await consumeLumiRateLimit({
+    supabase: limiterSupabase.supabase,
+    key: auth.user.id || getRequestIpAddress(request),
     namespace: "lumi-chat-user",
     ...LUMI_CHAT_USER_RATE_LIMIT,
   })
 
-  if (!userLimit.allowed) {
-    return createRateLimitResponse(userLimit.retryAfterSeconds)
+  if ("response" in userLimit) {
+    return userLimit.response
+  }
+
+  if (!userLimit.result.allowed) {
+    return createRateLimitResponse(userLimit.result.retryAfterSeconds)
   }
 
   const lumiEnv = getLumiEnv()
@@ -206,10 +221,10 @@ export async function POST(request: Request) {
               mode === "mock"
                 ? createMockLumiAiProvider()
                 : createLiveLumiAiProvider(getOpenAiProviderEnv(lumiEnv)),
-          })
+    })
 
     if (aiResult && !aiResult.ok) {
-      console.warn("Lumi AI response fell back to rule-based mode", {
+      console.warn("Lumi AI response used fallback", {
         reason: aiResult.reason,
         mode,
         sourceIds: aiResult.metadata.sourceIds,
@@ -217,7 +232,11 @@ export async function POST(request: Request) {
     }
 
     const response =
-      aiResult && aiResult.ok ? aiResult.response : ruleBasedResponse
+      aiResult
+        ? aiResult.ok
+          ? aiResult.response
+          : aiResult.fallback
+        : ruleBasedResponse
     const responseMetadata = aiResult
       ? aiResult.ok
         ? aiResult.metadata
@@ -245,15 +264,78 @@ export async function POST(request: Request) {
 
     return NextResponse.json(response)
   } catch (error) {
+    console.error("Lumi chat route failed", {
+      error: error instanceof Error ? error.message : error,
+    })
+
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Could not save the Lumi chat response.",
+        error: "Could not save the Lumi chat response.",
       },
       { status: 500 }
     )
+  }
+}
+
+function createLumiLimiterSupabase():
+  | {
+      supabase: SupabaseClient
+    }
+  | {
+      response: NextResponse
+    } {
+  try {
+    return {
+      supabase: createSupabaseServiceClientFromEnv(requireSupabaseServiceEnv()),
+    }
+  } catch (error) {
+    console.error("Lumi rate limiter Supabase client failed", {
+      error: error instanceof Error ? error.message : error,
+    })
+
+    return {
+      response: NextResponse.json(
+        {
+          error: "Lumi is temporarily unavailable. Please try again soon.",
+        },
+        { status: 503 }
+      ),
+    }
+  }
+}
+
+async function consumeLumiRateLimit(input: {
+  supabase: SupabaseClient
+  key: string
+  namespace: string
+  limit: number
+  windowSeconds: number
+}): Promise<
+  | {
+      result: Awaited<ReturnType<typeof consumeRateLimit>>
+    }
+  | {
+      response: NextResponse
+    }
+> {
+  try {
+    return {
+      result: await consumeRateLimit(input),
+    }
+  } catch (error) {
+    console.error("Lumi rate limiter failed", {
+      namespace: input.namespace,
+      error: error instanceof Error ? error.message : error,
+    })
+
+    return {
+      response: NextResponse.json(
+        {
+          error: "Lumi is temporarily unavailable. Please try again soon.",
+        },
+        { status: 503 }
+      ),
+    }
   }
 }
 
