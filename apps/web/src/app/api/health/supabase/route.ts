@@ -12,11 +12,15 @@ export async function GET() {
   const config = getSupabaseServiceEnvStatus()
 
   if (!config.configured) {
+    console.error("Supabase health check is not configured", {
+      missing: config.missing,
+    })
+
     return NextResponse.json(
       {
         ok: false,
         configured: false,
-        missing: config.missing,
+        error: "Supabase health check is unavailable.",
       },
       { status: 503 }
     )
@@ -26,23 +30,23 @@ export async function GET() {
     const supabase = createSupabaseServiceClientFromEnv(
       requireSupabaseServiceEnv()
     )
-    const result = await checkSupabaseWaitlistTable({ supabase })
+    await checkSupabaseWaitlistTable({ supabase })
 
     return NextResponse.json({
       ok: true,
       configured: true,
       source: "beta_signups",
-      waitlistCount: result.waitlistCount,
     })
   } catch (error) {
+    console.error("Supabase health check failed", {
+      error: error instanceof Error ? error.message : error,
+    })
+
     return NextResponse.json(
       {
         ok: false,
         configured: true,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Could not reach Supabase.",
+        error: "Could not reach Supabase.",
       },
       { status: 500 }
     )

@@ -13,10 +13,13 @@ export async function POST(request: Request) {
   const config = getSupabaseServiceEnvStatus()
 
   if (!config.configured) {
+    console.error("Waitlist API Supabase config is missing", {
+      missing: config.missing,
+    })
+
     return NextResponse.json(
       {
-        error: "Supabase is not configured.",
-        missing: config.missing,
+        error: "Could not save waitlist signup.",
       },
       { status: 503 }
     )
@@ -49,12 +52,13 @@ export async function POST(request: Request) {
       email: signup.email,
     })
   } catch (error) {
+    console.error("Waitlist signup failed", {
+      error: error instanceof Error ? error.message : error,
+    })
+
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Could not save waitlist signup.",
+        error: "Could not save waitlist signup.",
       },
       { status: 500 }
     )
