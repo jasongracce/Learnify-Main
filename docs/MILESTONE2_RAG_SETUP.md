@@ -4,7 +4,12 @@ This note covers the current RAG foundation for Lumi. Student-facing retrieval m
 
 ## Seeded Content
 
-The migration `supabase/migrations/202605160002_verified_physics_rag_seed.sql` adds verified English RAG content for:
+Two migrations add verified RAG content for the same three lessons in different locales:
+
+- `supabase/migrations/202605160002_verified_physics_rag_seed.sql` — English (`language = 'en'`)
+- `supabase/migrations/202606030001_verified_physics_rag_seed_thai.sql` — Thai (`language = 'th'`)
+
+Both cover:
 
 - `physics-foundations` / `gravity-and-falling-objects`
 - `physics-foundations` / `projectile-motion`
@@ -33,15 +38,18 @@ Then verify the seed rows:
 
 ```sql
 select
+  language,
   count(*) as verified_documents
 from public.rag_documents
 where status = 'processed'
   and verified = true
   and subject = 'Physics'
-  and language = 'en'
-  and metadata @> '{"course_slug": "physics-foundations"}'::jsonb;
+  and metadata @> '{"course_slug": "physics-foundations"}'::jsonb
+group by language
+order by language;
 
 select
+  d.language,
   d.metadata ->> 'lesson_slug' as lesson_slug,
   count(c.id) as verified_chunks
 from public.rag_chunks c
@@ -50,11 +58,11 @@ where d.status = 'processed'
   and d.verified = true
   and c.verified = true
   and d.metadata @> '{"course_slug": "physics-foundations"}'::jsonb
-group by d.metadata ->> 'lesson_slug'
-order by lesson_slug;
+group by d.language, d.metadata ->> 'lesson_slug'
+order by d.language, lesson_slug;
 ```
 
-Expected result: 3 verified documents and 2 verified chunks per lesson.
+Expected result: 3 verified documents per locale (`en` and `th`) and 2 verified chunks per lesson per locale.
 
 ## RLS Readiness Check
 
