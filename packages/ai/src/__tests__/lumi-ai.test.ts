@@ -249,4 +249,57 @@ describe("@learnify/ai Lumi foundation", () => {
       expect(result.fallback.safetyNotes).toContain("fallback_response")
     }
   })
+
+  it("returns a readable Thai provider-unavailable fallback with verified context", async () => {
+    const result = await chatWithLumiAi({
+      request: {
+        ...request,
+        locale: "th",
+        message: "ทำไมแรงโน้มถ่วงทำให้วัตถุเร็วขึ้น?",
+      },
+      provider: createUnavailableAiProvider(),
+    })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.reason).toBe("provider_unavailable")
+      expect(result.fallback.confidence).toBe("medium")
+      expect(result.fallback.answer).toBe(
+        "ตอนนี้ Lumi ยังใช้ระบบ AI ไม่ได้ แต่มีบริบทบทเรียนที่ตรวจสอบแล้วให้ทบทวน ลองอ่านแหล่งข้อมูลด้านล่างหรือถามเจาะจงเกี่ยวกับบทเรียนนี้อีกครั้ง"
+      )
+      expect(result.fallback.answer).not.toMatch(/[犧謂霞ｸｹ]/)
+      expect(result.fallback.suggestedPrompts).toEqual([
+        "อธิบายใจความสำคัญของบทเรียนนี้",
+        "ฉันควรทบทวนอะไรก่อน",
+      ])
+      expect(result.fallback.suggestedPrompts.join(" ")).not.toMatch(/[犧謂霞ｸｹ]/)
+    }
+  })
+
+  it("returns a readable Thai insufficient-context fallback without mojibake", async () => {
+    const result = await chatWithLumiAi({
+      request: {
+        ...request,
+        locale: "th",
+        message: "ช่วยอธิบายเรื่องที่ยังไม่มีแหล่งข้อมูลได้ไหม?",
+        sources: [],
+      },
+      provider: createUnavailableAiProvider(),
+    })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.reason).toBe("provider_unavailable")
+      expect(result.fallback.confidence).toBe("low")
+      expect(result.fallback.answer).toBe(
+        "ตอนนี้ Lumi ยังไม่มีบริบทที่ตรวจสอบแล้วพอที่จะตอบได้อย่างปลอดภัย ลองถามเกี่ยวกับบทเรียนปัจจุบัน หรือกลับไปทบทวนตัวอย่างในบทเรียนก่อน"
+      )
+      expect(result.fallback.answer).not.toMatch(/[犧謂霞ｸｹ]/)
+      expect(result.fallback.suggestedPrompts).toEqual([
+        "อธิบายใจความสำคัญของบทเรียนนี้",
+        "ฉันควรทบทวนอะไรก่อน",
+      ])
+      expect(result.fallback.suggestedPrompts.join(" ")).not.toMatch(/[犧謂霞ｸｹ]/)
+    }
+  })
 })

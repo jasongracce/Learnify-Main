@@ -49,12 +49,15 @@ export async function POST(
       lessonProgress: result.lessonProgress,
     })
   } catch (error) {
+    console.error("Lesson block completion failed", {
+      lessonSlug,
+      blockId,
+      error: error instanceof Error ? error.message : error,
+    })
+
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Could not complete lesson block.",
+        error: "Could not complete lesson block.",
       },
       { status: 500 }
     )

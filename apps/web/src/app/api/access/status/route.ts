@@ -13,10 +13,13 @@ export async function GET(request: Request) {
   const config = getSupabaseServiceEnvStatus()
 
   if (!config.configured) {
+    console.error("Access status API Supabase config is missing", {
+      missing: config.missing,
+    })
+
     return NextResponse.json(
       {
-        error: "Supabase is not configured.",
-        missing: config.missing,
+        error: "Could not check access status.",
       },
       { status: 503 }
     )
@@ -50,12 +53,13 @@ export async function GET(request: Request) {
       status,
     })
   } catch (error) {
+    console.error("Access status check failed", {
+      error: error instanceof Error ? error.message : error,
+    })
+
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Could not check access status.",
+        error: "Could not check access status.",
       },
       { status: 500 }
     )

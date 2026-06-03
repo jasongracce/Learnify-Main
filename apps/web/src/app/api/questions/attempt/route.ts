@@ -98,8 +98,14 @@ export async function POST(request: Request) {
     const correctOptionId = getCorrectOptionId(question.correct_answer)
 
     if (!correctOptionId) {
+      console.error("Question answer key is not configured", {
+        lessonSlug: parsed.data.lessonSlug,
+        blockId: parsed.data.blockId,
+        questionId: parsed.data.questionId,
+      })
+
       return NextResponse.json(
-        { error: "Question answer key is not configured." },
+        { error: "Could not record question attempt." },
         { status: 500 }
       )
     }
@@ -128,12 +134,13 @@ export async function POST(request: Request) {
       lessonProgress: result.lessonProgress,
     })
   } catch (error) {
+    console.error("Question attempt failed", {
+      error: error instanceof Error ? error.message : error,
+    })
+
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Could not record question attempt.",
+        error: "Could not record question attempt.",
       },
       { status: 500 }
     )

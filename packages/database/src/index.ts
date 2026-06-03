@@ -189,6 +189,30 @@ export type RetrieveVerifiedRagChunksInput = {
   embedding?: number[]
 }
 
+export type ConsumeRateLimitInput = {
+  supabase: SupabaseClient
+  key: string
+  namespace: string
+  limit: number
+  windowSeconds: number
+}
+
+export type RateLimitResult = {
+  allowed: boolean
+  limit: number
+  remaining: number
+  resetAtMs: number
+  retryAfterSeconds: number
+}
+
+type RateLimitRpcRecord = {
+  allowed: boolean
+  limit_value: number
+  remaining: number
+  reset_at: string
+  retry_after_seconds: number
+}
+
 export type LessonProgressSummary = {
   lessonId: string
   lessonSlug: string
@@ -373,6 +397,55 @@ export async function checkSupabaseWaitlistTable(input: {
   }
 }
 
+export async function consumeRateLimit(
+  input: ConsumeRateLimitInput
+): Promise<RateLimitResult> {
+  const key = input.key.trim()
+  const namespace = input.namespace.trim()
+  const limit = toPositiveInteger(input.limit, "Rate limit")
+  const windowSeconds = toPositiveInteger(
+    input.windowSeconds,
+    "Rate limit window"
+  )
+
+  if (!key || !namespace) {
+    throw new Error("Rate limit key and namespace are required.")
+  }
+
+  const { data, error } = await input.supabase
+    .rpc("consume_rate_limit", {
+      rate_limit_key: key,
+      rate_limit_namespace: namespace,
+      max_attempts: limit,
+      window_seconds: windowSeconds,
+    })
+    .returns<RateLimitRpcRecord[]>()
+
+  if (error) {
+    throw new Error(`Rate limit check failed: ${error.message}`)
+  }
+
+  const record = Array.isArray(data) ? data[0] : null
+
+  if (!record) {
+    throw new Error("Rate limit check failed: no limiter status returned.")
+  }
+
+  const resetAtMs = Date.parse(record.reset_at)
+
+  if (!Number.isFinite(resetAtMs)) {
+    throw new Error("Rate limit check failed: invalid reset time returned.")
+  }
+
+  return {
+    allowed: Boolean(record.allowed),
+    limit: Number(record.limit_value),
+    remaining: Math.max(Number(record.remaining), 0),
+    resetAtMs,
+    retryAfterSeconds: Math.max(Number(record.retry_after_seconds), 0),
+  }
+}
+
 export async function getPublishedLessonBySlug(input: {
   supabase: SupabaseClient
   lessonSlug: string
@@ -433,10 +506,6 @@ export async function getQuestionForLesson(input: {
 
   if (exactMatch) {
     return exactMatch
-  }
-
-  if (data.length === 1) {
-    return data[0]
   }
 
   return null
@@ -535,6 +604,19 @@ export async function completeLessonBlock(input: {
   lessonSlug: string
   blockSlug: string
 }) {
+  return completeLessonBlockForProgress({
+    ...input,
+    allowQuestionBlockCompletion: false,
+  })
+}
+
+async function completeLessonBlockForProgress(input: {
+  supabase: SupabaseClient
+  userId: string
+  lessonSlug: string
+  blockSlug: string
+  allowQuestionBlockCompletion: boolean
+}) {
   const lesson = await getPublishedLessonBySlug({
     supabase: input.supabase,
     lessonSlug: input.lessonSlug,
@@ -552,6 +634,12 @@ export async function completeLessonBlock(input: {
 
   if (!block) {
     throw new Error("Lesson block not found.")
+  }
+
+  if (block.type === "multiple_choice" && !input.allowQuestionBlockCompletion) {
+    throw new Error(
+      "Question blocks must be completed through question attempts."
+    )
   }
 
   const now = new Date().toISOString()
@@ -730,11 +818,12 @@ export async function recordQuestionAttempt(input: {
     : null
 
   const completion = input.isCorrect
-    ? await completeLessonBlock({
+    ? await completeLessonBlockForProgress({
         supabase: input.supabase,
         userId: input.userId,
         lessonSlug: input.lessonSlug,
         blockSlug: input.blockSlug,
+        allowQuestionBlockCompletion: true,
       })
     : null
 
@@ -1285,6 +1374,14 @@ function clampRetrievalLimit(limit?: number) {
   }
 
   return Math.min(Math.max(Math.trunc(limit ?? 6), 1), 20)
+}
+
+function toPositiveInteger(value: number, label: string) {
+  if (!Number.isInteger(value) || value < 1) {
+    throw new Error(`${label} must be a positive integer.`)
+  }
+
+  return value
 }
 
 function normalizeJsonObject(value: unknown): Record<string, unknown> {
