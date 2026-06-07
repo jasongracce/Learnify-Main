@@ -14,6 +14,7 @@ export type Language = "en" | "th";
 export type Translations = {
   nav: { about: string; features: string; pricing: string; survey: string };
   joinWaitlist: string;
+  login: string;
   languageLabel: string;
   hero: {
     badge: string;
@@ -205,6 +206,7 @@ const translations: Record<Language, Translations> = {
       survey: "Survey",
     },
     joinWaitlist: "Join Waitlist",
+    login: "Log in",
     languageLabel: "EN",
     hero: {
       badge: "Smarter study starts here",
@@ -448,6 +450,7 @@ const translations: Record<Language, Translations> = {
       survey: "แบบสอบถาม",
     },
     joinWaitlist: "ลงชื่อรอทดลอง",
+    login: "เข้าสู่ระบบ",
     languageLabel: "TH",
     hero: {
       badge: "เรียนให้ดีขึ้น เริ่มที่นี่",

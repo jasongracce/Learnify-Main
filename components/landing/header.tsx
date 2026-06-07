@@ -7,6 +7,10 @@ import { useLanguage } from "@/lib/i18n";
 
 type Props = { simplified?: boolean };
 
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://app.learnify.academy";
+const LOGIN_URL = `${APP_URL}/login`;
+
 export default function Header({ simplified = false }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { t } = useLanguage();
@@ -51,12 +55,10 @@ export default function Header({ simplified = false }: Props) {
             {/* CTA + Language */}
             <div className="hidden items-center gap-3 md:flex">
               <a
-                href="/survey"
-                target="_blank"
-                rel="noopener noreferrer"
+                href={LOGIN_URL}
                 className="rounded-full border border-[#1a1a1a] px-5 py-2 text-sm font-medium text-[#1a1a1a] transition-all hover:bg-[#1a1a1a] hover:text-white"
               >
-                {t.joinWaitlist}
+                {t.login}
               </a>
               <LanguageDropdown />
             </div>
@@ -99,12 +101,10 @@ export default function Header({ simplified = false }: Props) {
               </a>
             ))}
             <a
-              href="/survey"
-              target="_blank"
-              rel="noopener noreferrer"
+              href={LOGIN_URL}
               className="mt-2 inline-flex w-fit rounded-full border border-[#1a1a1a] px-5 py-2 text-sm font-medium text-[#1a1a1a] transition-all hover:bg-[#1a1a1a] hover:text-white"
             >
-              {t.joinWaitlist}
+              {t.login}
             </a>
           </nav>
         </div>
