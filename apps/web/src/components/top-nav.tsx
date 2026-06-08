@@ -1,4 +1,7 @@
+"use client"
+
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { ArrowRight } from "lucide-react"
 import type { Locale } from "@learnify/shared"
 import { alternateLocale } from "@/lib/locales"
@@ -12,6 +15,12 @@ type TopNavProps = {
 export function TopNav({ locale }: TopNavProps) {
   const t = copy[locale].nav
   const nextLocale = alternateLocale(locale)
+  const pathname = usePathname()
+
+  // The auth screens are standalone (full-page), so hide the app nav there.
+  if (pathname?.includes("/auth/")) {
+    return null
+  }
 
   return (
     <header className="border-b border-[var(--border)] bg-[var(--background)]">

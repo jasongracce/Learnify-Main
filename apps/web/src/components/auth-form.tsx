@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import type { FormEvent } from "react"
-import { Mail } from "lucide-react"
+import Link from "next/link"
+import { GraduationCap, Mail } from "lucide-react"
 import type { Locale } from "@learnify/shared"
 import { copy } from "@/lib/copy"
 
@@ -25,9 +26,36 @@ type AuthResponse = {
   redirectTo?: string
 }
 
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"
+      />
+    </svg>
+  )
+}
+
 export function AuthForm({ locale, mode }: AuthFormProps) {
   const t = copy[locale].auth
   const [state, setState] = useState<AuthState>({ status: "idle" })
+
+  const isSignup = mode === "signup"
+  const heading = isSignup ? t.signupTitle : t.loginTitle
+  const submitLabel = isSignup ? t.submit : t.submitLogin
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -76,41 +104,81 @@ export function AuthForm({ locale, mode }: AuthFormProps) {
   }
 
   return (
-    <div className="mt-6 grid gap-4">
+    <div className="w-full max-w-sm rounded-2xl border border-[#ececec] bg-white p-8 shadow-[0_10px_40px_-12px_rgba(26,26,26,0.18)]">
+      {/* Icon chip */}
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-[#ececec] bg-[#f9f9f7] shadow-sm">
+        <GraduationCap aria-hidden="true" size={22} className="text-[#1a1a1a]" />
+      </div>
+
+      <h1 className="mt-5 text-center text-2xl font-semibold tracking-tight text-[#1a1a1a]">
+        {heading}
+      </h1>
+      <p className="mx-auto mt-2 max-w-xs text-center text-sm leading-relaxed text-[#6b6b6b]">
+        {t.subtitle}
+      </p>
+
+      {/* Google */}
       <a
-        className="inline-flex w-full items-center justify-center rounded-[var(--radius)] border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium transition-colors hover:border-[var(--brand)]"
+        className="mt-6 inline-flex w-full items-center justify-center gap-2.5 rounded-full border border-[#d4d4d4] bg-white px-4 py-2.5 text-sm font-medium text-[#1a1a1a] transition-all hover:border-[#1a1a1a] hover:shadow-sm"
         href={`/api/auth/google?locale=${locale}`}
       >
+        <GoogleIcon />
         {t.google}
       </a>
-      <form className="grid gap-4 border-t border-[var(--border)] pt-4" onSubmit={handleSubmit}>
-        <label className="grid gap-2 text-sm font-medium">
-          {t.email}
+
+      {/* Divider */}
+      <div className="my-5 flex items-center gap-3">
+        <span className="h-px flex-1 bg-[#ececec]" />
+        <span className="text-xs text-[#9a9a9a]">{t.or}</span>
+        <span className="h-px flex-1 bg-[#ececec]" />
+      </div>
+
+      {/* Email + primary */}
+      <form className="grid gap-3" onSubmit={handleSubmit}>
+        <div className="relative">
+          <Mail
+            aria-hidden="true"
+            size={16}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9a9a9a]"
+          />
           <input
-            className="rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 outline-none focus:border-[var(--brand)]"
+            className="w-full rounded-full border border-[#d4d4d4] bg-[#f9f9f7] py-2.5 pl-10 pr-4 text-sm text-[#1a1a1a] outline-none transition-colors placeholder:text-[#9a9a9a] focus:border-[#1a1a1a] focus:bg-white"
             name="email"
             type="email"
-            placeholder="student@example.com"
+            placeholder={t.email}
+            aria-label={t.email}
             required
           />
-        </label>
+        </div>
         <button
-          className="inline-flex w-fit items-center gap-2 rounded-[var(--radius)] bg-[var(--text)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center rounded-full bg-[#1a1a1a] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[#2a2a2a] disabled:opacity-60"
           disabled={state.status === "submitting"}
           type="submit"
         >
-          <Mail aria-hidden="true" size={16} />
-          {state.status === "submitting" ? t.submitting : t.submit}
+          {state.status === "submitting" ? t.submitting : submitLabel}
         </button>
         {state.status === "check_email" ? (
-          <p className="text-sm leading-6 text-[var(--muted)]">
+          <p className="text-center text-sm leading-6 text-[#6b6b6b]">
             {state.message}
           </p>
         ) : null}
         {state.status === "error" ? (
-          <p className="text-sm leading-6 text-red-700">{state.message}</p>
+          <p className="text-center text-sm leading-6 text-red-600">
+            {state.message}
+          </p>
         ) : null}
       </form>
+
+      {/* Cross-link */}
+      <p className="mt-6 text-center text-sm text-[#6b6b6b]">
+        {isSignup ? t.haveAccount : t.noAccount}{" "}
+        <Link
+          className="font-medium text-[#1a1a1a] underline-offset-2 hover:underline"
+          href={`/${locale}/auth/${isSignup ? "login" : "signup"}`}
+        >
+          {isSignup ? t.loginTitle : t.signupTitle}
+        </Link>
+      </p>
     </div>
   )
 }

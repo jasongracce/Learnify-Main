@@ -39,12 +39,17 @@ type Copy = {
     loginTitle: string
     signupTitle: string
     body: string
+    subtitle: string
     source: string
     waitlist: string
     google: string
+    or: string
     submit: string
+    submitLogin: string
     submitting: string
     email: string
+    haveAccount: string
+    noAccount: string
   }
   dashboard: {
     title: string
@@ -149,13 +154,18 @@ export const copy = {
       signupTitle: "Create account",
       body:
         "Use Google or your email to request beta access. Learnify checks the private beta list before opening the app.",
+      subtitle: "Join the Learnify private beta. Smarter study, for free.",
       source:
         "Use this page as the destination for the Login button on learnify.academy.",
       waitlist: "Join the waitlist first",
       google: "Continue with Google",
-      submit: "Email me a sign-in link",
+      or: "or",
+      submit: "Create account",
+      submitLogin: "Log in",
       submitting: "Checking...",
       email: "Email",
+      haveAccount: "Already have an account?",
+      noAccount: "New to Learnify?",
     },
     dashboard: {
       title: "Student dashboard",
@@ -267,12 +277,17 @@ export const copy = {
       signupTitle: "สร้างบัญชี",
       body:
         "ใช้ Google หรืออีเมลเพื่อขอเข้า beta ระบบจะตรวจรายชื่อ beta ก่อนเปิดแอป",
+      subtitle: "เข้าร่วม Learnify รุ่นเบต้า เรียนอย่างชาญฉลาด ฟรี",
       source: "หน้านี้คือปลายทางของปุ่ม Login บน learnify.academy",
       waitlist: "เข้าร่วมรายชื่อรอก่อน",
       google: "ดำเนินการต่อด้วย Google",
-      submit: "ส่งลิงก์เข้าสู่ระบบทางอีเมล",
+      or: "หรือ",
+      submit: "สร้างบัญชี",
+      submitLogin: "เข้าสู่ระบบ",
       submitting: "กำลังตรวจสอบ...",
       email: "อีเมล",
+      haveAccount: "มีบัญชีอยู่แล้ว?",
+      noAccount: "ยังไม่มีบัญชี?",
     },
     dashboard: {
       title: "แดชบอร์ดผู้เรียน",
