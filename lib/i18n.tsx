@@ -219,7 +219,7 @@ const translations: Record<Language, Translations> = {
       ],
       description:
         "Learnify helps students study with more focus, ask better questions, and build real understanding without the usual overwhelm.",
-      answerSurvey: "Answer Survey",
+      answerSurvey: "Start now",
       seeFeatures: "See Features",
       beta: "Beta Test soon...",
     },
@@ -463,7 +463,7 @@ const translations: Record<Language, Translations> = {
       ],
       description:
         "Learnify ช่วยทุกคนเรียนได้อย่างมีสมาธิ ถามคำถามได้อย่างมีคุณภาพ และเข้าใจอย่างแจ่มแจ้ง โดยไม่สับสนหลงทาง",
-      answerSurvey: "ตอบแบบสอบถาม",
+      answerSurvey: "เริ่มเลย",
       seeFeatures: "ดูฟีเจอร์",
       beta: "เวอร์ชั่นทดลองจะมาเร็วๆนี้",
     },
