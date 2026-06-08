@@ -7,13 +7,14 @@ This guide covers the first-time Vercel setup for `apps/web`. The repo is a pnpm
 1. In the Vercel dashboard, click **Add New → Project** and import this GitHub repository.
 2. On the configuration screen:
    - **Framework Preset**: Next.js (auto-detected).
-   - **Root Directory**: repository root / empty. Do not set this to `apps/web`, because `apps/web` depends on `packages/*` through `workspace:*`.
+   - **Root Directory**: `apps/web`.
+   - **Include files outside the root directory**: enabled. This is required because `apps/web` depends on `packages/*` through `workspace:*`.
    - **Install Command**: `pnpm install --frozen-lockfile`.
    - **Build Command**: `pnpm --filter web build`.
-   - **Output Directory**: `apps/web/.next`.
+   - **Output Directory**: `.next`.
    - **Node.js Version**: 20.x or later.
 
-The repo includes a root `vercel.json` with the same install, build, and output settings. If Vercel reports `ERR_PNPM_WORKSPACE_PKG_NOT_FOUND` for packages such as `@learnify/ai`, the project is still being built from `apps/web` instead of the workspace root.
+The repo includes a root `vercel.json` with the same install, build, and output settings. If Vercel reports `ERR_PNPM_WORKSPACE_PKG_NOT_FOUND` for packages such as `@learnify/ai`, enable **Include files outside the root directory** or recreate the project with that option enabled.
 
 ## 2. Environment variables
 
