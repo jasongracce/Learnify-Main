@@ -1,5 +1,6 @@
 import type { Locale } from "@learnify/shared"
 import { AuthForm } from "@/components/auth-form"
+import { copy } from "@/lib/copy"
 import { marketingSiteUrl } from "@/lib/site"
 
 type AuthScreenProps = {
@@ -8,6 +9,7 @@ type AuthScreenProps = {
 }
 
 export function AuthScreen({ locale, mode }: AuthScreenProps) {
+  const t = copy[locale].auth
   const fontFamily =
     locale === "th"
       ? "var(--font-kanit), var(--font-geist), system-ui, sans-serif"
@@ -15,37 +17,55 @@ export function AuthScreen({ locale, mode }: AuthScreenProps) {
 
   return (
     <main
-      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#f9f9f7] px-6 py-12"
+      className="grid min-h-screen md:grid-cols-2"
       style={{ fontFamily }}
     >
-      {/* Soft radial accent */}
+      {/* Left: brand panel — fills the full left half */}
       <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
+        className="relative hidden flex-col justify-between p-12 text-white md:flex"
         style={{
-          background:
-            "radial-gradient(70% 55% at 50% 30%, rgba(255,255,255,0.95) 0%, rgba(249,249,247,0) 72%)",
+          backgroundImage: "url('/auth-panel.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
-      />
-
-      {/* Wordmark */}
-      <a
-        href={marketingSiteUrl}
-        className="absolute left-6 top-6 text-[22px] leading-none tracking-tight text-[#1a1a1a]"
-        style={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 900 }}
       >
-        Learnify.
-      </a>
-
-      <div className="relative flex w-full flex-col items-center">
-        <AuthForm locale={locale} mode={mode} />
-
+        {/* Dark overlay keeps the white text readable over the image */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.5) 100%)",
+          }}
+        />
         <a
           href={marketingSiteUrl}
-          className="mt-6 text-sm text-[#9a9a9a] transition-colors hover:text-[#1a1a1a]"
+          className="relative text-[24px] leading-none tracking-tight"
+          style={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 900 }}
         >
-          ← learnify.academy
+          Learnify.
         </a>
+        <div className="relative max-w-md">
+          <p className="text-sm text-white/70">{t.panelEyebrow}</p>
+          <h2 className="mt-2 text-4xl font-semibold leading-tight tracking-tight">
+            {t.panelTitle}
+          </h2>
+        </div>
+      </div>
+
+      {/* Right: form — fills the full right half */}
+      <div className="flex min-h-screen items-center justify-center bg-white px-6 py-12 md:min-h-0">
+        <div className="w-full max-w-sm">
+          {/* Wordmark for mobile, where the brand panel is hidden */}
+          <a
+            href={marketingSiteUrl}
+            className="mb-8 block text-[22px] leading-none tracking-tight text-[#1a1a1a] md:hidden"
+            style={{ fontFamily: "'Satoshi', sans-serif", fontWeight: 900 }}
+          >
+            Learnify.
+          </a>
+          <AuthForm locale={locale} mode={mode} />
+        </div>
       </div>
     </main>
   )

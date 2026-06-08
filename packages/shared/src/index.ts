@@ -229,6 +229,18 @@ export const authEmailRequestSchema = z.object({
 
 export type AuthEmailRequestInput = z.infer<typeof authEmailRequestSchema>
 
+export const authPasswordRequestSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email()
+    .transform((value) => value.toLowerCase()),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+  locale: localeSchema.default("en"),
+})
+
+export type AuthPasswordRequestInput = z.infer<typeof authPasswordRequestSchema>
+
 export const waitlistSignupSchema = z.object({
   email: z
     .string()

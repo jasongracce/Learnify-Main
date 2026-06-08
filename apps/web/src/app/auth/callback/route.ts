@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server"
-import {
-  createSupabaseServiceClientFromEnv,
-  getWaitlistAccessByEmail,
-  upsertStudentProfile,
-} from "@learnify/database"
 import { localeSchema } from "@learnify/shared"
-import { requireSupabaseServiceEnv } from "@/lib/env"
+import { ensureRegisteredAccess } from "@/app/api/auth/_lib"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export async function GET(request: Request) {
@@ -34,26 +29,11 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL(`/${locale}/auth/login`, request.url))
   }
 
-  const serviceSupabase = createSupabaseServiceClientFromEnv(
-    requireSupabaseServiceEnv()
-  )
-  const access = await getWaitlistAccessByEmail({
-    supabase: serviceSupabase,
-    email: user.email,
-  })
-
-  if (access !== "approved") {
-    await authSupabase.auth.signOut()
-    return NextResponse.redirect(new URL(`/${locale}/waitlist`, request.url))
-  }
-
-  await upsertStudentProfile({
-    supabase: serviceSupabase,
+  await ensureRegisteredAccess({
     userId: user.id,
+    email: user.email,
     locale,
   })
 
-  return NextResponse.redirect(
-    new URL(`/${locale}/app/dashboard`, request.url)
-  )
+  return NextResponse.redirect(new URL(`/${locale}/app/dashboard`, request.url))
 }

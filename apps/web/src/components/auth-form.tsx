@@ -3,7 +3,7 @@
 import { useState } from "react"
 import type { FormEvent } from "react"
 import Link from "next/link"
-import { GraduationCap, Mail } from "lucide-react"
+import { Eye, EyeOff, Lock, Mail } from "lucide-react"
 import type { Locale } from "@learnify/shared"
 import { copy } from "@/lib/copy"
 
@@ -52,9 +52,10 @@ function GoogleIcon() {
 export function AuthForm({ locale, mode }: AuthFormProps) {
   const t = copy[locale].auth
   const [state, setState] = useState<AuthState>({ status: "idle" })
+  const [showPassword, setShowPassword] = useState(false)
 
   const isSignup = mode === "signup"
-  const heading = isSignup ? t.signupTitle : t.loginTitle
+  const heading = isSignup ? t.signupHeading : t.loginTitle
   const submitLabel = isSignup ? t.submit : t.submitLogin
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -69,6 +70,7 @@ export function AuthForm({ locale, mode }: AuthFormProps) {
       },
       body: JSON.stringify({
         email: form.get("email"),
+        password: form.get("password"),
         locale,
       }),
     })
@@ -104,73 +106,76 @@ export function AuthForm({ locale, mode }: AuthFormProps) {
   }
 
   return (
-    <div className="w-full max-w-sm rounded-2xl border border-[#ececec] bg-white p-8 shadow-[0_10px_40px_-12px_rgba(26,26,26,0.18)]">
-      {/* Icon chip */}
-      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-[#ececec] bg-[#f9f9f7] shadow-sm">
-        <GraduationCap aria-hidden="true" size={22} className="text-[#1a1a1a]" />
-      </div>
-
-      <h1 className="mt-5 text-center text-2xl font-semibold tracking-tight text-[#1a1a1a]">
+    <div className="w-full max-w-sm">
+      <h1 className="text-4xl font-semibold tracking-tight text-[#1a1a1a]">
         {heading}
       </h1>
-      <p className="mx-auto mt-2 max-w-xs text-center text-sm leading-relaxed text-[#6b6b6b]">
+      <p className="mt-2 text-sm leading-relaxed text-[#6b6b6b]">
         {t.subtitle}
       </p>
 
-      {/* Google */}
-      <a
-        className="mt-6 inline-flex w-full items-center justify-center gap-2.5 rounded-full border border-[#d4d4d4] bg-white px-4 py-2.5 text-sm font-medium text-[#1a1a1a] transition-all hover:border-[#1a1a1a] hover:shadow-sm"
-        href={`/api/auth/google?locale=${locale}`}
-      >
-        <GoogleIcon />
-        {t.google}
-      </a>
-
-      {/* Divider */}
-      <div className="my-5 flex items-center gap-3">
-        <span className="h-px flex-1 bg-[#ececec]" />
-        <span className="text-xs text-[#9a9a9a]">{t.or}</span>
-        <span className="h-px flex-1 bg-[#ececec]" />
-      </div>
-
       {/* Email + primary */}
-      <form className="grid gap-3" onSubmit={handleSubmit}>
-        <div className="relative">
-          <Mail
-            aria-hidden="true"
-            size={16}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9a9a9a]"
-          />
-          <input
-            className="w-full rounded-full border border-[#d4d4d4] bg-[#f9f9f7] py-2.5 pl-10 pr-4 text-sm text-[#1a1a1a] outline-none transition-colors placeholder:text-[#9a9a9a] focus:border-[#1a1a1a] focus:bg-white"
-            name="email"
-            type="email"
-            placeholder={t.email}
-            aria-label={t.email}
-            required
-          />
-        </div>
+      <form className="mt-7 grid gap-4" onSubmit={handleSubmit}>
+        <label className="grid gap-1.5 text-sm font-medium text-[#1a1a1a]">
+          {t.email}
+          <div className="relative">
+            <Mail
+              aria-hidden="true"
+              size={16}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9a9a9a]"
+            />
+            <input
+              className="w-full rounded-xl border border-[#d4d4d4] bg-[#f9f9f7] py-2.5 pl-10 pr-4 text-sm font-normal text-[#1a1a1a] outline-none transition-colors placeholder:text-[#9a9a9a] focus:border-[#1a1a1a] focus:bg-white"
+              name="email"
+              type="email"
+              placeholder="you@email.com"
+              required
+            />
+          </div>
+        </label>
+        <label className="grid gap-1.5 text-sm font-medium text-[#1a1a1a]">
+          {t.password}
+          <div className="relative">
+            <Lock
+              aria-hidden="true"
+              size={16}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9a9a9a]"
+            />
+            <input
+              className="w-full rounded-xl border border-[#d4d4d4] bg-[#f9f9f7] py-2.5 pl-10 pr-11 text-sm font-normal text-[#1a1a1a] outline-none transition-colors placeholder:text-[#9a9a9a] focus:border-[#1a1a1a] focus:bg-white"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              minLength={8}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((value) => !value)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9a9a9a] transition-colors hover:text-[#1a1a1a]"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        </label>
         <button
-          className="inline-flex w-full items-center justify-center rounded-full bg-[#1a1a1a] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[#2a2a2a] disabled:opacity-60"
+          className="inline-flex w-full items-center justify-center rounded-xl bg-[#1a1a1a] px-4 py-3 text-sm font-medium text-white transition-all hover:bg-[#2a2a2a] disabled:opacity-60"
           disabled={state.status === "submitting"}
           type="submit"
         >
           {state.status === "submitting" ? t.submitting : submitLabel}
         </button>
         {state.status === "check_email" ? (
-          <p className="text-center text-sm leading-6 text-[#6b6b6b]">
-            {state.message}
-          </p>
+          <p className="text-sm leading-6 text-[#6b6b6b]">{state.message}</p>
         ) : null}
         {state.status === "error" ? (
-          <p className="text-center text-sm leading-6 text-red-600">
-            {state.message}
-          </p>
+          <p className="text-sm leading-6 text-red-600">{state.message}</p>
         ) : null}
       </form>
 
       {/* Cross-link */}
-      <p className="mt-6 text-center text-sm text-[#6b6b6b]">
+      <p className="mt-4 text-center text-sm text-[#6b6b6b]">
         {isSignup ? t.haveAccount : t.noAccount}{" "}
         <Link
           className="font-medium text-[#1a1a1a] underline-offset-2 hover:underline"
@@ -179,6 +184,22 @@ export function AuthForm({ locale, mode }: AuthFormProps) {
           {isSignup ? t.loginTitle : t.signupTitle}
         </Link>
       </p>
+
+      {/* Divider */}
+      <div className="my-5 flex items-center gap-3">
+        <span className="h-px flex-1 bg-[#ececec]" />
+        <span className="text-xs text-[#9a9a9a]">{t.or}</span>
+        <span className="h-px flex-1 bg-[#ececec]" />
+      </div>
+
+      {/* Google */}
+      <a
+        className="inline-flex w-full items-center justify-center gap-2.5 rounded-xl border border-[#d4d4d4] bg-white px-4 py-2.5 text-sm font-medium text-[#1a1a1a] transition-all hover:border-[#1a1a1a] hover:shadow-sm"
+        href={`/api/auth/google?locale=${locale}`}
+      >
+        <GoogleIcon />
+        {t.google}
+      </a>
     </div>
   )
 }

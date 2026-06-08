@@ -48,8 +48,12 @@ type Copy = {
     submitLogin: string
     submitting: string
     email: string
+    password: string
     haveAccount: string
     noAccount: string
+    panelEyebrow: string
+    panelTitle: string
+    signupHeading: string
   }
   dashboard: {
     title: string
@@ -154,7 +158,7 @@ export const copy = {
       signupTitle: "Create account",
       body:
         "Use Google or your email to request beta access. Learnify checks the private beta list before opening the app.",
-      subtitle: "Join the Learnify private beta. Smarter study, for free.",
+      subtitle: "Join Learnify for smarter study",
       source:
         "Use this page as the destination for the Login button on learnify.academy.",
       waitlist: "Join the waitlist first",
@@ -164,8 +168,12 @@ export const copy = {
       submitLogin: "Log in",
       submitting: "Checking...",
       email: "Email",
+      password: "Password",
       haveAccount: "Already have an account?",
       noAccount: "New to Learnify?",
+      panelEyebrow: "Smarter study starts here",
+      panelTitle: "Speed up your learning with Learnify",
+      signupHeading: "Go Beyond",
     },
     dashboard: {
       title: "Student dashboard",
@@ -277,7 +285,7 @@ export const copy = {
       signupTitle: "สร้างบัญชี",
       body:
         "ใช้ Google หรืออีเมลเพื่อขอเข้า beta ระบบจะตรวจรายชื่อ beta ก่อนเปิดแอป",
-      subtitle: "เข้าร่วม Learnify รุ่นเบต้า เรียนอย่างชาญฉลาด ฟรี",
+      subtitle: "เข้าร่วม Learnify เพื่อการเรียนที่ชาญฉลาด",
       source: "หน้านี้คือปลายทางของปุ่ม Login บน learnify.academy",
       waitlist: "เข้าร่วมรายชื่อรอก่อน",
       google: "ดำเนินการต่อด้วย Google",
@@ -286,8 +294,12 @@ export const copy = {
       submitLogin: "เข้าสู่ระบบ",
       submitting: "กำลังตรวจสอบ...",
       email: "อีเมล",
+      password: "รหัสผ่าน",
       haveAccount: "มีบัญชีอยู่แล้ว?",
       noAccount: "ยังไม่มีบัญชี?",
+      panelEyebrow: "เริ่มเรียนให้ฉลาดขึ้นที่นี่",
+      panelTitle: "เรียนรู้ได้เร็วขึ้นไปกับ Learnify",
+      signupHeading: "ก้าวไปไกลกว่าเดิม",
     },
     dashboard: {
       title: "แดชบอร์ดผู้เรียน",
