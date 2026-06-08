@@ -1,27 +1,22 @@
-import { authPasswordRequestSchema } from "@learnify/shared"
+import { authEmailRequestSchema } from "@learnify/shared"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { authJsonError, authRedirectUrl } from "../_lib"
 
 export async function POST(request: Request) {
-  const parsed = authPasswordRequestSchema.safeParse(
+  const parsed = authEmailRequestSchema.safeParse(
     await request.json().catch(() => null)
   )
 
   if (!parsed.success) {
-    return authJsonError(
-      "Enter a valid email and a password of at least 8 characters."
-    )
+    return authJsonError("Enter a valid email address.")
   }
 
   const supabase = await createSupabaseServerClient()
-  const { error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.resend({
+    type: "signup",
     email: parsed.data.email,
-    password: parsed.data.password,
     options: {
       emailRedirectTo: authRedirectUrl({ request, locale: parsed.data.locale }),
-      data: {
-        language_preference: parsed.data.locale,
-      },
     },
   })
 
@@ -31,8 +26,6 @@ export async function POST(request: Request) {
 
   return Response.json({
     ok: true,
-    status: "check_email",
-    email: parsed.data.email,
-    message: "Check your email to confirm your Learnify account.",
+    message: "We sent another confirmation email.",
   })
 }

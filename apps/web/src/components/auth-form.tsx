@@ -15,12 +15,19 @@ type AuthFormProps = {
 type AuthState =
   | { status: "idle" }
   | { status: "submitting" }
-  | { status: "check_email"; message: string }
+  | {
+      status: "check_email"
+      message: string
+      email: string
+      resendStatus: "idle" | "submitting" | "sent" | "error"
+      resendMessage?: string
+    }
   | { status: "error"; message: string }
 
 type AuthResponse = {
   ok?: boolean
   status?: "check_email"
+  email?: string
   message?: string
   error?: string
   redirectTo?: string
@@ -98,11 +105,54 @@ export function AuthForm({ locale, mode }: AuthFormProps) {
       setState({
         status: "check_email",
         message: result.message ?? "Check your email to confirm your account.",
+        email:
+          result.email ??
+          (typeof form.get("email") === "string"
+            ? (form.get("email") as string)
+            : ""),
+        resendStatus: "idle",
       })
       return
     }
 
     window.location.assign(result?.redirectTo ?? `/${locale}/app/dashboard`)
+  }
+
+  async function handleResendConfirmation() {
+    if (state.status !== "check_email") {
+      return
+    }
+
+    setState({
+      ...state,
+      resendStatus: "submitting",
+      resendMessage: undefined,
+    })
+
+    const response = await fetch("/api/auth/resend-confirmation", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: state.email,
+        locale,
+      }),
+    })
+    const result = (await response.json().catch(() => null)) as
+      | AuthResponse
+      | null
+
+    setState({
+      ...state,
+      resendStatus: response.ok ? "sent" : "error",
+      resendMessage:
+        result?.message ??
+        result?.error ??
+        (response.ok
+          ? "We sent another confirmation email."
+          : "Could not resend the confirmation email."),
+    })
   }
 
   return (
@@ -167,7 +217,30 @@ export function AuthForm({ locale, mode }: AuthFormProps) {
           {state.status === "submitting" ? t.submitting : submitLabel}
         </button>
         {state.status === "check_email" ? (
-          <p className="text-sm leading-6 text-[#6b6b6b]">{state.message}</p>
+          <div className="grid gap-2 text-sm leading-6 text-[#6b6b6b]">
+            <p>{state.message}</p>
+            <button
+              className="w-fit text-sm font-medium text-[#1a1a1a] underline-offset-2 hover:underline disabled:opacity-60"
+              disabled={state.resendStatus === "submitting"}
+              onClick={handleResendConfirmation}
+              type="button"
+            >
+              {state.resendStatus === "submitting"
+                ? "Sending..."
+                : "Resend confirmation email"}
+            </button>
+            {state.resendMessage ? (
+              <p
+                className={
+                  state.resendStatus === "error"
+                    ? "text-red-600"
+                    : "text-[#6b6b6b]"
+                }
+              >
+                {state.resendMessage}
+              </p>
+            ) : null}
+          </div>
         ) : null}
         {state.status === "error" ? (
           <p className="text-sm leading-6 text-red-600">{state.message}</p>
