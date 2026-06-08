@@ -3,6 +3,10 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/lib/i18n";
 
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ?? "https://app.learnify.academy";
+const LOGIN_URL = `${APP_URL}/login`;
+
 function TextRotate({
   texts,
   rotationInterval = 2600,
@@ -82,9 +86,7 @@ export default function Hero() {
       {/* CTA Buttons */}
       <div className="animate-fade-in-up animation-delay-300 mt-8 flex flex-col items-center gap-3 sm:flex-row">
         <a
-          href="/survey"
-          target="_blank"
-          rel="noopener noreferrer"
+          href={LOGIN_URL}
           className="inline-flex items-center gap-2 rounded-full bg-[#1a1a1a] px-7 py-3 text-sm font-medium text-white transition-all hover:scale-[1.03] hover:shadow-lg"
         >
           {t.hero.answerSurvey}
