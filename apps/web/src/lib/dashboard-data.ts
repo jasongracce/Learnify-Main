@@ -21,11 +21,24 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 export type DashboardData = {
   nextLesson: LearnifyLesson
   weakSkill: LearnifySkill
+  weakSkillMastery: number
+  weakSkillConfidence: "low" | "medium" | "high"
   insight: string
   recentPractice: {
     correct: number
     total: number
   }
+  courseProgress: {
+    completedLessons: number
+    totalLessons: number
+    percent: number
+  }
+  streakDays: number
+  skillMastery: {
+    skill: LearnifySkill
+    masteryScore: number
+    confidenceLevel: "low" | "medium" | "high"
+  }[]
   source: "live" | "fallback"
 }
 
@@ -80,6 +93,8 @@ export async function getStudentDashboardData(input: {
     return {
       nextLesson: fallbackLesson ?? starterLesson,
       weakSkill: starterSkill,
+      weakSkillMastery: 25,
+      weakSkillConfidence: "low",
       insight: generateRuleBasedLumiInsight({
         locale: input.locale,
         mastery: [
@@ -100,6 +115,17 @@ export async function getStudentDashboardData(input: {
         correct: 0,
         total: 0,
       },
+      courseProgress: {
+        completedLessons: 0,
+        totalLessons: lessons.length,
+        percent: 0,
+      },
+      streakDays: 0,
+      skillMastery: physicsSkills.map((skill, index) => ({
+        skill,
+        masteryScore: index === 0 ? 25 : 0,
+        confidenceLevel: "low",
+      })),
       source: "fallback",
     }
   }
@@ -151,6 +177,8 @@ function buildDashboardData(input: {
   const weakSkill =
     physicsSkills.find((skill) => skill.slug === weakSkillSummary?.skillSlug) ??
     physicsSkills[0]
+  const weakSkillMastery = weakSkillSummary?.masteryScore ?? 25
+  const weakSkillConfidence = weakSkillSummary?.confidenceLevel ?? "low"
   const masteryForInsight =
     input.mastery.length > 0
       ? input.mastery.map((item) => ({
@@ -172,10 +200,31 @@ function buildDashboardData(input: {
   const recentTotal = input.attempts.length
   const recentCorrect = input.attempts.filter((attempt) => attempt.isCorrect)
     .length
+  const progressByLessonSlug = new Map(
+    input.progress
+      .filter((item) => lessonSlugs.has(item.lessonSlug))
+      .map((item) => [item.lessonSlug, item.progressPercent])
+  )
+  const totalProgress = lessons.reduce(
+    (sum, lesson) => sum + (progressByLessonSlug.get(lesson.slug) ?? 0),
+    0
+  )
+  const skillMastery = physicsSkills.map((skill) => {
+    const summary = input.mastery.find((item) => item.skillSlug === skill.slug)
+
+    return {
+      skill,
+      masteryScore:
+        summary?.masteryScore ?? (skill.id === weakSkill.id ? 25 : 0),
+      confidenceLevel: summary?.confidenceLevel ?? ("low" as const),
+    }
+  })
 
   return {
     nextLesson,
     weakSkill,
+    weakSkillMastery,
+    weakSkillConfidence,
     insight: generateRuleBasedLumiInsight({
       locale: input.locale,
       mastery: masteryForInsight,
@@ -188,6 +237,54 @@ function buildDashboardData(input: {
       correct: recentCorrect,
       total: recentTotal,
     },
+    courseProgress: {
+      completedLessons: completedLessonSlugs.length,
+      totalLessons: lessons.length,
+      percent:
+        lessons.length > 0 ? Math.round(totalProgress / lessons.length) : 0,
+    },
+    streakDays: calculatePracticeStreak(input.attempts),
+    skillMastery,
     source: input.source,
   }
+}
+
+function calculatePracticeStreak(attempts: QuestionAttemptSummary[]) {
+  const days = [
+    ...new Set(
+      attempts
+        .map((attempt) => {
+          const date = new Date(attempt.createdAt)
+
+          if (Number.isNaN(date.getTime())) {
+            return null
+          }
+
+          return date.toISOString().slice(0, 10)
+        })
+        .filter((day): day is string => Boolean(day))
+    ),
+  ].sort((a, b) => b.localeCompare(a))
+
+  if (days.length === 0) {
+    return 0
+  }
+
+  let streak = 1
+  let previous = new Date(`${days[0]}T00:00:00.000Z`)
+
+  for (const day of days.slice(1)) {
+    const current = new Date(`${day}T00:00:00.000Z`)
+    const deltaDays =
+      (previous.getTime() - current.getTime()) / (1000 * 60 * 60 * 24)
+
+    if (deltaDays !== 1) {
+      break
+    }
+
+    streak += 1
+    previous = current
+  }
+
+  return streak
 }
