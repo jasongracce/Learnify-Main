@@ -1,8 +1,9 @@
 "use client"
 
-import { useId, useMemo, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { Send } from "lucide-react"
+import { ArrowRight, ArrowUp, Sparkles } from "lucide-react"
+import clsx from "clsx"
 import type { Locale, LumiChatResponse, LumiMessage } from "@learnify/shared"
 import { copy } from "@/lib/copy"
 import {
@@ -49,8 +50,18 @@ export function LumiChat({
   )
   const [isSending, setIsSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const canSend = input.trim().length > 0 && !isSending
   const visibleMessages = useMemo(() => messages.slice(-30), [messages])
+  const hasMessages = visibleMessages.length > 0
+
+  useEffect(() => {
+    const list = listRef.current
+
+    if (list) {
+      list.scrollTop = list.scrollHeight
+    }
+  }, [visibleMessages.length, isSending])
 
   async function sendMessage(message: string) {
     const trimmed = message.trim()
@@ -130,44 +141,50 @@ export function LumiChat({
 
   return (
     <section
-      className={
-        isCompact ? "grid gap-3" : "grid gap-4 lg:grid-cols-[1fr_300px]"
-      }
+      className={clsx(
+        "flex flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-strong)] shadow-[var(--shadow-card)]",
+        isCompact
+          ? "h-[440px]"
+          : "h-[calc(100dvh-170px)] min-h-[440px] max-h-[820px]"
+      )}
     >
-      <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-strong)]">
-        <div
-          className={
-            isCompact
-              ? "border-b border-[var(--border)] px-4 py-3"
-              : "border-b border-[var(--border)] p-5"
-          }
-        >
-          {isCompact ? (
-            <h2 className="text-base font-semibold">{title}</h2>
-          ) : (
-            <h1 className="text-2xl font-semibold">{title}</h1>
+      <div
+        className={clsx(
+          "flex items-center gap-3 border-b border-[var(--border)]",
+          isCompact ? "px-4 py-3" : "px-5 py-4"
+        )}
+      >
+        <span
+          className={clsx(
+            "flex shrink-0 items-center justify-center rounded-full bg-[var(--text)] text-white",
+            isCompact ? "h-8 w-8" : "h-9 w-9"
           )}
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            {body}
-          </p>
-        </div>
-
-        <div
-          className={
-            isCompact
-              ? "grid min-h-[160px] content-end gap-3 p-4"
-              : "grid min-h-[420px] content-end gap-3 p-5"
-          }
         >
-          {visibleMessages.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">{body}</p>
-          ) : (
-            visibleMessages.map((message) => (
+          <Sparkles aria-hidden="true" size={isCompact ? 14 : 16} />
+        </span>
+        <div className="min-w-0">
+          <p className={clsx("font-semibold", isCompact ? "text-sm" : "")}>
+            {title}
+          </p>
+          <p className="truncate text-xs text-[var(--muted)]">{t.subtitle}</p>
+        </div>
+      </div>
+
+      <div
+        className={clsx(
+          "flex-1 overflow-y-auto",
+          isCompact ? "p-4" : "p-5"
+        )}
+        ref={listRef}
+      >
+        {hasMessages ? (
+          <div className="grid gap-3">
+            {visibleMessages.map((message) => (
               <div
                 className={
                   message.role === "user"
-                    ? "ml-auto max-w-[82%] rounded-[var(--radius)] bg-[var(--text)] px-3 py-2 text-sm leading-6 text-white"
-                    : "mr-auto max-w-[82%] rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm leading-6"
+                    ? "ml-auto max-w-[85%] rounded-[18px] rounded-br-[6px] bg-[var(--text)] px-4 py-2.5 text-sm leading-6 text-white"
+                    : "mr-auto max-w-[85%] rounded-[18px] rounded-bl-[6px] border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-2.5 text-sm leading-6 shadow-[var(--shadow-card)]"
                 }
                 key={message.id}
               >
@@ -179,7 +196,7 @@ export function LumiChat({
                     {message.suggestedNextAction ? (
                       <p>
                         <span className="font-medium text-[var(--text)]">
-                          Next:
+                          {t.next}:
                         </span>{" "}
                         {message.suggestedNextAction}
                       </p>
@@ -187,7 +204,7 @@ export function LumiChat({
                     {message.sources && message.sources.length > 0 ? (
                       <div className="mt-2">
                         <p className="font-medium text-[var(--text)]">
-                          Sources
+                          {t.sources}
                         </p>
                         <ul className="mt-1 grid gap-1">
                           {message.sources.map((source) => {
@@ -217,16 +234,70 @@ export function LumiChat({
                   </div>
                 ) : null}
               </div>
-            ))
-          )}
-        </div>
+            ))}
+            {isSending ? <TypingBubble /> : null}
+            {relatedLessonSlug ? (
+              <Link
+                className="mr-auto inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--border)] bg-[var(--surface-subtle)] px-3.5 py-2 text-sm font-medium transition-colors hover:border-[var(--muted-soft)]"
+                href={`/${locale}/app/lessons/${relatedLessonSlug}`}
+              >
+                {t.relatedLesson}
+                <ArrowRight aria-hidden="true" size={14} />
+              </Link>
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+            <span
+              className={clsx(
+                "flex items-center justify-center rounded-full bg-[var(--text)] text-white",
+                isCompact ? "h-10 w-10" : "h-12 w-12"
+              )}
+            >
+              <Sparkles aria-hidden="true" size={isCompact ? 16 : 20} />
+            </span>
+            <p className="font-semibold">{t.emptyTitle}</p>
+            <p className="max-w-sm text-sm leading-6 text-[var(--muted)]">
+              {body}
+            </p>
+            <div
+              className={clsx(
+                "mt-2 flex flex-wrap justify-center gap-2",
+                isCompact ? "" : "max-w-md"
+              )}
+            >
+              {suggestedPrompts.map((prompt) => (
+                <PromptChip
+                  disabled={isSending}
+                  key={prompt}
+                  onClick={() => void sendMessage(prompt)}
+                  prompt={prompt}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
+      <div
+        className={clsx(
+          "border-t border-[var(--border)]",
+          isCompact ? "p-3" : "p-4"
+        )}
+      >
+        {hasMessages && suggestedPrompts.length > 0 && !isCompact ? (
+          <div className="mb-3 flex flex-wrap gap-2">
+            {suggestedPrompts.map((prompt) => (
+              <PromptChip
+                disabled={isSending}
+                key={prompt}
+                onClick={() => void sendMessage(prompt)}
+                prompt={prompt}
+              />
+            ))}
+          </div>
+        ) : null}
         <form
-          className={
-            isCompact
-              ? "border-t border-[var(--border)] p-3"
-              : "border-t border-[var(--border)] p-4"
-          }
           onSubmit={(event) => {
             event.preventDefault()
             void sendMessage(input)
@@ -235,59 +306,66 @@ export function LumiChat({
           <label className="sr-only" htmlFor={inputId}>
             {t.input}
           </label>
-          <div className="flex gap-2">
+          <div className="flex items-end gap-2 rounded-[24px] border border-[var(--border)] bg-[var(--surface-strong)] py-1.5 pl-4 pr-1.5 transition-colors focus-within:border-[var(--muted-soft)]">
             <textarea
-              className="min-h-11 flex-1 resize-none rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--brand)]"
+              className="max-h-32 min-h-8 flex-1 resize-none self-center bg-transparent py-1 text-sm leading-6 outline-none placeholder:text-[var(--muted-soft)]"
               id={inputId}
               onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault()
+                  void sendMessage(input)
+                }
+              }}
               placeholder={t.input}
-              rows={isCompact ? 1 : 2}
+              rows={1}
               value={input}
             />
             <button
-              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-[var(--radius)] bg-[var(--text)] px-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 sm:px-4"
+              aria-label={isSending ? t.sending : t.send}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--text)] text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
               disabled={!canSend}
               type="submit"
             >
-              <Send aria-hidden="true" size={16} />
-              <span className={isCompact ? "sr-only sm:not-sr-only" : ""}>
-                {isSending ? t.sending : t.send}
-              </span>
+              <ArrowUp aria-hidden="true" size={16} />
             </button>
           </div>
-          {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
+          {error ? (
+            <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>
+          ) : null}
         </form>
       </div>
-
-      <aside
-        className={
-          isCompact
-            ? "rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-strong)] p-3"
-            : "rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-strong)] p-4"
-        }
-      >
-        <div className={isCompact ? "grid gap-2 md:grid-cols-3" : "grid gap-2"}>
-          {suggestedPrompts.map((prompt) => (
-            <button
-              className="rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-left text-sm leading-5 transition-colors hover:border-[var(--brand)] disabled:opacity-60"
-              disabled={isSending}
-              key={prompt}
-              onClick={() => void sendMessage(prompt)}
-              type="button"
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
-        {relatedLessonSlug ? (
-          <Link
-            className="mt-4 inline-flex rounded-[var(--radius)] bg-[var(--surface)] px-3 py-2 text-sm font-medium"
-            href={`/${locale}/app/lessons/${relatedLessonSlug}`}
-          >
-            {t.relatedLesson}
-          </Link>
-        ) : null}
-      </aside>
     </section>
+  )
+}
+
+function PromptChip({
+  disabled,
+  onClick,
+  prompt,
+}: {
+  disabled: boolean
+  onClick: () => void
+  prompt: string
+}) {
+  return (
+    <button
+      className="rounded-[var(--radius-pill)] border border-[var(--border)] bg-[var(--surface-strong)] px-3.5 py-1.5 text-left text-sm leading-5 transition-colors hover:border-[var(--muted-soft)] hover:bg-[var(--surface-subtle)] disabled:opacity-60"
+      disabled={disabled}
+      onClick={onClick}
+      type="button"
+    >
+      {prompt}
+    </button>
+  )
+}
+
+function TypingBubble() {
+  return (
+    <div className="mr-auto flex items-center gap-1.5 rounded-[18px] rounded-bl-[6px] border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 shadow-[var(--shadow-card)]">
+      <span className="lumi-typing-dot h-1.5 w-1.5 rounded-full bg-[var(--muted)]" />
+      <span className="lumi-typing-dot h-1.5 w-1.5 rounded-full bg-[var(--muted)]" />
+      <span className="lumi-typing-dot h-1.5 w-1.5 rounded-full bg-[var(--muted)]" />
+    </div>
   )
 }
