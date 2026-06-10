@@ -1,5 +1,3 @@
-import Link from "next/link"
-import type { ReactNode } from "react"
 import {
   ArrowRight,
   BookOpen,
@@ -11,8 +9,16 @@ import {
   Target,
 } from "lucide-react"
 import type { Locale } from "@learnify/shared"
+import { physicsFoundationsCourse } from "@learnify/shared"
 import { selectLocalizedText } from "@learnify/core"
 import { AppNav } from "@/components/app-nav"
+import { SkillMasteryList } from "@/components/skill-mastery-list"
+import { ConfidenceBadge } from "@/components/ui/badge"
+import { ButtonLink } from "@/components/ui/button"
+import { Card, CardHeader, CardSection } from "@/components/ui/card"
+import { PageHeader } from "@/components/ui/page-header"
+import { ProgressBar } from "@/components/ui/progress"
+import { StatCard } from "@/components/ui/stat"
 import { requireBetaUser } from "@/lib/auth/protected"
 import { getStudentDashboardData } from "@/lib/dashboard-data"
 import { copy } from "@/lib/copy"
@@ -21,52 +27,31 @@ type DashboardPageProps = {
   params: Promise<{ locale: Locale }>
 }
 
-const dashboardLabels = {
-  en: {
-    confidence: "Confidence",
-    courseProgress: "Course progress",
-    currentModule: "Motion, Gravity, and Forces",
-    lessonsDone: "Lessons done",
-    mastery: "Mastery",
-    minutes: "Minutes",
-    practiceStreak: "Practice streak",
-    recentScore: "Recent score",
-    review: "Review",
-    skillMastery: "Skill mastery",
-    sourceFallback: "Showing seeded course data",
-    sourceLive: "Synced with saved progress",
-    weakArea: "Weak area",
-  },
-  th: {
-    confidence: "Confidence",
-    courseProgress: "Course progress",
-    currentModule: "Motion, Gravity, and Forces",
-    lessonsDone: "Lessons done",
-    mastery: "Mastery",
-    minutes: "Minutes",
-    practiceStreak: "Practice streak",
-    recentScore: "Recent score",
-    review: "Review",
-    skillMastery: "Skill mastery",
-    sourceFallback: "Showing seeded course data",
-    sourceLive: "Synced with saved progress",
-    weakArea: "Weak area",
-  },
-} satisfies Record<Locale, Record<string, string>>
-
 export default async function DashboardPage({ params }: DashboardPageProps) {
   const { locale } = await params
   const user = await requireBetaUser(locale)
   const t = copy[locale].dashboard
-  const labels = dashboardLabels[locale]
+  const labels = t.labels
+  const confidenceLabels = copy[locale].common.confidence
   const dashboard = await getStudentDashboardData({
     userId: user.id,
     locale,
   })
+  const displayName =
+    (user.user_metadata?.full_name as string | undefined)?.split(" ")[0] ??
+    user.email?.split("@")[0] ??
+    ""
   const nextLessonTitle = selectLocalizedText(
     {
       en: dashboard.nextLesson.title_en,
       th: dashboard.nextLesson.title_th,
+    },
+    locale
+  )
+  const moduleTitle = selectLocalizedText(
+    {
+      en: dashboard.currentModule.title_en,
+      th: dashboard.currentModule.title_th,
     },
     locale
   )
@@ -84,247 +69,181 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
     },
     locale
   )
-  const recentScore =
-    dashboard.recentPractice.total > 0
-      ? Math.round(
-          (dashboard.recentPractice.correct / dashboard.recentPractice.total) *
-            100
-        )
-      : 0
+  const hasPractice = dashboard.recentPractice.total > 0
+  const recentScore = hasPractice
+    ? Math.round(
+        (dashboard.recentPractice.correct / dashboard.recentPractice.total) *
+          100
+      )
+    : 0
+  const lessons = physicsFoundationsCourse.modules.flatMap(
+    (module) => module.lessons
+  )
+  const skillItems = dashboard.skillMastery.map((item) => {
+    const practiceLesson = lessons.find((lesson) =>
+      lesson.skill_ids.includes(item.skill.id)
+    )
+
+    return {
+      id: item.skill.id,
+      title: selectLocalizedText(
+        {
+          en: item.skill.title_en,
+          th: item.skill.title_th,
+        },
+        locale
+      ),
+      masteryScore: item.masteryScore,
+      confidenceLevel: item.confidenceLevel,
+      href: practiceLesson
+        ? `/${locale}/app/lessons/${practiceLesson.slug}`
+        : undefined,
+    }
+  })
 
   return (
     <>
       <AppNav active="dashboard" locale={locale} />
-      <main className="learnify-container py-6 md:py-8">
-        <section className="grid gap-5">
-          <div className="flex flex-col gap-3 border-b border-[var(--border)] pb-5 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold">{t.title}</h1>
-              <p className="mt-2 max-w-2xl leading-7 text-[var(--muted)]">
-                {t.body}
-              </p>
-            </div>
-            <p className="text-sm text-[var(--muted)]">
-              {dashboard.source === "live"
-                ? labels.sourceLive
-                : labels.sourceFallback}
-            </p>
-          </div>
+      <main className="learnify-container py-6 md:py-10">
+        <PageHeader
+          subtitle={t.body}
+          title={displayName ? `${t.greeting}, ${displayName}` : t.greeting}
+        />
 
+        <div className="grid gap-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_352px]">
-            <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-strong)]">
-              <div className="border-b border-[var(--border)] px-5 py-4">
-                <div className="flex items-center gap-2 text-sm font-medium">
+            <Card className="animate-fade-in-up">
+              <CardSection className="flex h-full flex-col gap-5 p-6 md:p-8">
+                <div className="flex items-center gap-2 text-sm font-medium text-[var(--muted)]">
                   <Target aria-hidden="true" size={16} />
                   {t.continueLearning}
                 </div>
-                <h2 className="mt-3 text-xl font-semibold">
-                  {nextLessonTitle}
-                </h2>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">
-                  {selectLocalizedText(
-                    {
-                      en: dashboard.nextLesson.summary_en,
-                      th: dashboard.nextLesson.summary_th,
-                    },
-                    locale
-                  )}
-                </p>
-              </div>
-
-              <div className="grid gap-0 md:grid-cols-3">
-                <MetricCard
-                  icon={<BookOpen aria-hidden="true" size={16} />}
-                  label={labels.courseProgress}
-                  value={`${dashboard.courseProgress.percent}%`}
-                  detail={`${dashboard.courseProgress.completedLessons}/${dashboard.courseProgress.totalLessons} ${labels.lessonsDone}`}
-                />
-                <MetricCard
-                  icon={<CheckCircle2 aria-hidden="true" size={16} />}
-                  label={labels.recentScore}
-                  value={
-                    dashboard.recentPractice.total > 0
-                      ? `${recentScore}%`
-                      : "0%"
-                  }
-                  detail={
-                    dashboard.recentPractice.total > 0
-                      ? `${dashboard.recentPractice.correct}/${dashboard.recentPractice.total} ${t.recentPractice}`
-                      : copy[locale].insights.noPractice
-                  }
-                />
-                <MetricCard
-                  icon={<Flame aria-hidden="true" size={16} />}
-                  label={labels.practiceStreak}
-                  value={`${dashboard.streakDays}`}
-                  detail={dashboard.streakDays === 1 ? "day" : "days"}
-                />
-              </div>
-
-              <div className="border-t border-[var(--border)] px-5 py-4">
-                <div className="mb-2 flex items-center justify-between text-sm">
-                  <span className="text-[var(--muted)]">
-                    {labels.currentModule}
-                  </span>
-                  <span className="font-medium">
-                    {dashboard.courseProgress.percent}%
-                  </span>
-                </div>
-                <ProgressBar value={dashboard.courseProgress.percent} />
-              </div>
-
-              <div className="flex flex-col gap-3 border-t border-[var(--border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
-                  <Clock3 aria-hidden="true" size={16} />
-                  {dashboard.nextLesson.estimated_minutes} {labels.minutes}
-                </div>
-                <Link
-                  className="inline-flex w-fit items-center gap-2 rounded-[var(--radius)] bg-[var(--text)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--brand-strong)]"
-                  href={`/${locale}/app/lessons/${dashboard.nextLesson.slug}`}
-                >
-                  {copy[locale].courses.start}
-                  <ArrowRight aria-hidden="true" size={16} />
-                </Link>
-              </div>
-            </section>
-
-            <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-strong)] p-5">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Lightbulb aria-hidden="true" size={16} />
-                {t.insight}
-              </div>
-              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                {dashboard.insight}
-              </p>
-
-              <div className="mt-5 border-t border-[var(--border)] pt-4">
-                <div className="flex items-center justify-between gap-4">
-                  <p className="text-sm font-medium">{labels.weakArea}</p>
-                  <span className="text-sm text-[var(--muted)]">
-                    {dashboard.weakSkillConfidence}
-                  </span>
-                </div>
-                <p className="mt-2 font-semibold">{weakSkillTitle}</p>
-                <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-                  {weakSkillDescription}
-                </p>
-                <div className="mt-4">
-                  <div className="mb-2 flex items-center justify-between text-sm">
-                    <span className="text-[var(--muted)]">
-                      {labels.mastery}
-                    </span>
-                    <span className="font-medium">
-                      {dashboard.weakSkillMastery}%
-                    </span>
-                  </div>
-                  <ProgressBar value={dashboard.weakSkillMastery} />
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <section className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-strong)]">
-            <div className="flex items-center gap-2 border-b border-[var(--border)] px-5 py-4 text-sm font-medium">
-              <Brain aria-hidden="true" size={16} />
-              {labels.skillMastery}
-            </div>
-            <div className="divide-y divide-[var(--border)]">
-              {dashboard.skillMastery.map((item) => (
-                <SkillMasteryRow
-                  confidenceLabel={labels.confidence}
-                  item={{
-                    confidenceLevel: item.confidenceLevel,
-                    masteryScore: item.masteryScore,
-                    title: selectLocalizedText(
+                <div>
+                  <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">
+                    {nextLessonTitle}
+                  </h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--muted)]">
+                    {selectLocalizedText(
                       {
-                        en: item.skill.title_en,
-                        th: item.skill.title_th,
+                        en: dashboard.nextLesson.summary_en,
+                        th: dashboard.nextLesson.summary_th,
                       },
                       locale
-                    ),
-                  }}
-                  key={item.skill.id}
-                  masteryLabel={labels.mastery}
-                  reviewLabel={labels.review}
+                    )}
+                  </p>
+                </div>
+                <ProgressBar
+                  label={moduleTitle}
+                  percent={dashboard.currentModule.percent}
+                  value={`${dashboard.currentModule.percent}%`}
                 />
-              ))}
+                <div className="mt-auto flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                    <Clock3 aria-hidden="true" size={16} />
+                    {dashboard.nextLesson.estimated_minutes} {labels.minutes}
+                  </div>
+                  <ButtonLink
+                    href={`/${locale}/app/lessons/${dashboard.nextLesson.slug}`}
+                  >
+                    {copy[locale].courses.start}
+                    <ArrowRight aria-hidden="true" size={16} />
+                  </ButtonLink>
+                </div>
+              </CardSection>
+            </Card>
+
+            <Card className="animate-fade-in-up animation-delay-100">
+              <CardHeader
+                icon={<Lightbulb aria-hidden="true" size={16} />}
+                title={t.insight}
+              />
+              <CardSection>
+                <p className="text-sm leading-6 text-[var(--muted)]">
+                  {dashboard.insight}
+                </p>
+
+                <div className="mt-5 border-t border-[var(--border)] pt-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium">{t.weakSkill}</p>
+                    <ConfidenceBadge
+                      label={confidenceLabels[dashboard.weakSkillConfidence]}
+                      level={dashboard.weakSkillConfidence}
+                    />
+                  </div>
+                  <p className="mt-2 font-semibold">{weakSkillTitle}</p>
+                  <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+                    {weakSkillDescription}
+                  </p>
+                  <ProgressBar
+                    className="mt-4"
+                    percent={dashboard.weakSkillMastery}
+                    value={`${dashboard.weakSkillMastery}%`}
+                  />
+                  {dashboard.weakSkillLessonSlug && (
+                    <ButtonLink
+                      className="mt-4 w-full"
+                      href={`/${locale}/app/lessons/${dashboard.weakSkillLessonSlug}`}
+                      variant="secondary"
+                    >
+                      {labels.review}
+                      <ArrowRight aria-hidden="true" size={16} />
+                    </ButtonLink>
+                  )}
+                </div>
+              </CardSection>
+            </Card>
+          </div>
+
+          <div className="grid gap-4 animate-fade-in-up animation-delay-200 md:grid-cols-3">
+            <StatCard
+              detail={
+                dashboard.courseProgress.percent > 0
+                  ? `${dashboard.courseProgress.completedLessons}/${dashboard.courseProgress.totalLessons} ${labels.lessonsDone}`
+                  : labels.zeroProgress
+              }
+              icon={<BookOpen aria-hidden="true" size={16} />}
+              label={labels.courseProgress}
+              value={`${dashboard.courseProgress.percent}%`}
+            />
+            <StatCard
+              detail={
+                hasPractice
+                  ? `${dashboard.recentPractice.correct}/${dashboard.recentPractice.total} ${t.recentPractice}`
+                  : labels.zeroScore
+              }
+              icon={<CheckCircle2 aria-hidden="true" size={16} />}
+              label={labels.recentScore}
+              value={hasPractice ? `${recentScore}%` : "—"}
+            />
+            <StatCard
+              detail={
+                dashboard.streakDays > 0
+                  ? labels.streakUnit(dashboard.streakDays)
+                  : labels.zeroStreak
+              }
+              icon={<Flame aria-hidden="true" size={16} />}
+              label={labels.practiceStreak}
+              value={
+                dashboard.streakDays > 0 ? `${dashboard.streakDays}` : "—"
+              }
+            />
+          </div>
+
+          <Card className="animate-fade-in-up animation-delay-300">
+            <CardHeader
+              icon={<Brain aria-hidden="true" size={16} />}
+              title={labels.skillMastery}
+            />
+            <div className="mt-2">
+              <SkillMasteryList
+                confidenceLabels={confidenceLabels}
+                items={skillItems}
+                practiceLabel={labels.practice}
+              />
             </div>
-          </section>
-        </section>
+          </Card>
+        </div>
       </main>
     </>
-  )
-}
-
-function MetricCard({
-  detail,
-  icon,
-  label,
-  value,
-}: {
-  detail: string
-  icon: ReactNode
-  label: string
-  value: string
-}) {
-  return (
-    <div className="border-t border-[var(--border)] p-5 first:border-t-0 md:border-l md:border-t-0 md:first:border-l-0">
-      <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
-        {icon}
-        {label}
-      </div>
-      <p className="mt-3 text-2xl font-semibold">{value}</p>
-      <p className="mt-1 text-sm leading-5 text-[var(--muted)]">{detail}</p>
-    </div>
-  )
-}
-
-function SkillMasteryRow({
-  confidenceLabel,
-  item,
-  masteryLabel,
-  reviewLabel,
-}: {
-  confidenceLabel: string
-  item: {
-    confidenceLevel: "low" | "medium" | "high"
-    masteryScore: number
-    title: string
-  }
-  masteryLabel: string
-  reviewLabel: string
-}) {
-  return (
-    <div className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,1fr)_180px_120px] md:items-center">
-      <div>
-        <p className="font-medium">{item.title}</p>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          {confidenceLabel}: {item.confidenceLevel}
-        </p>
-      </div>
-      <div>
-        <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="text-[var(--muted)]">{masteryLabel}</span>
-          <span className="font-medium">{item.masteryScore}%</span>
-        </div>
-        <ProgressBar value={item.masteryScore} />
-      </div>
-      <p className="text-sm text-[var(--muted)] md:text-right">
-        {item.confidenceLevel === "low" ? reviewLabel : item.confidenceLevel}
-      </p>
-    </div>
-  )
-}
-
-function ProgressBar({ value }: { value: number }) {
-  const normalizedValue = Math.min(100, Math.max(0, value))
-
-  return (
-    <div className="h-2 overflow-hidden rounded-[4px] bg-[var(--surface)]">
-      <div
-        className="h-full rounded-[4px] bg-[var(--brand)]"
-        style={{ width: `${normalizedValue}%` }}
-      />
-    </div>
   )
 }

@@ -20,9 +20,15 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export type DashboardData = {
   nextLesson: LearnifyLesson
+  currentModule: {
+    title_en: string
+    title_th?: string
+    percent: number
+  }
   weakSkill: LearnifySkill
   weakSkillMastery: number
   weakSkillConfidence: "low" | "medium" | "high"
+  weakSkillLessonSlug: string | null
   insight: string
   recentPractice: {
     correct: number
@@ -90,11 +96,25 @@ export async function getStudentDashboardData(input: {
       currentLessonSlug: starterLesson.slug,
     })
 
+    const resolvedLesson = fallbackLesson ?? starterLesson
+    const fallbackModule =
+      physicsFoundationsCourse.modules.find(
+        (module) => module.slug === resolvedLesson.module_slug
+      ) ?? physicsFoundationsCourse.modules[0]
+
     return {
-      nextLesson: fallbackLesson ?? starterLesson,
+      nextLesson: resolvedLesson,
+      currentModule: {
+        title_en: fallbackModule.title_en,
+        title_th: fallbackModule.title_th,
+        percent: 0,
+      },
       weakSkill: starterSkill,
       weakSkillMastery: 25,
       weakSkillConfidence: "low",
+      weakSkillLessonSlug:
+        lessons.find((lesson) => lesson.skill_ids.includes(starterSkill.id))
+          ?.slug ?? null,
       insight: generateRuleBasedLumiInsight({
         locale: input.locale,
         mastery: [
@@ -209,6 +229,14 @@ function buildDashboardData(input: {
     (sum, lesson) => sum + (progressByLessonSlug.get(lesson.slug) ?? 0),
     0
   )
+  const currentModule =
+    physicsFoundationsCourse.modules.find(
+      (module) => module.slug === nextLesson.module_slug
+    ) ?? physicsFoundationsCourse.modules[0]
+  const moduleProgressTotal = currentModule.lessons.reduce(
+    (sum, lesson) => sum + (progressByLessonSlug.get(lesson.slug) ?? 0),
+    0
+  )
   const skillMastery = physicsSkills.map((skill) => {
     const summary = input.mastery.find((item) => item.skillSlug === skill.slug)
 
@@ -222,9 +250,20 @@ function buildDashboardData(input: {
 
   return {
     nextLesson,
+    currentModule: {
+      title_en: currentModule.title_en,
+      title_th: currentModule.title_th,
+      percent:
+        currentModule.lessons.length > 0
+          ? Math.round(moduleProgressTotal / currentModule.lessons.length)
+          : 0,
+    },
     weakSkill,
     weakSkillMastery,
     weakSkillConfidence,
+    weakSkillLessonSlug:
+      lessons.find((lesson) => lesson.skill_ids.includes(weakSkill.id))?.slug ??
+      null,
     insight: generateRuleBasedLumiInsight({
       locale: input.locale,
       mastery: masteryForInsight,
