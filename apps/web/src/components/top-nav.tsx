@@ -17,8 +17,9 @@ export function TopNav({ locale }: TopNavProps) {
   const nextLocale = alternateLocale(locale)
   const pathname = usePathname()
 
-  // The auth screens are standalone (full-page), so hide the app nav there.
-  if (pathname?.includes("/auth/")) {
+  // The auth screens are standalone (full-page) and the app has its own
+  // AppNav header, so hide the marketing nav on both.
+  if (pathname?.includes("/auth/") || pathname?.includes("/app")) {
     return null
   }
 

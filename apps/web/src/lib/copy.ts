@@ -1,6 +1,13 @@
 import type { Locale } from "@learnify/shared"
 
 type Copy = {
+  common: {
+    confidence: {
+      low: string
+      medium: string
+      high: string
+    }
+  }
   nav: {
     waitlist: string
     login: string
@@ -58,11 +65,26 @@ type Copy = {
   dashboard: {
     title: string
     body: string
+    greeting: string
     continueLearning: string
     nextLesson: string
     weakSkill: string
     insight: string
     recentPractice: string
+    labels: {
+      courseProgress: string
+      lessonsDone: string
+      recentScore: string
+      practiceStreak: string
+      skillMastery: string
+      minutes: string
+      review: string
+      practice: string
+      streakUnit: (days: number) => string
+      zeroProgress: string
+      zeroScore: string
+      zeroStreak: string
+    }
   }
   insights: {
     title: string
@@ -96,17 +118,25 @@ type Copy = {
     saved: string
     saving: string
     continue: string
+    markRead: string
+    markedRead: string
+    saveError: string
+    answerError: string
     gravity: string
     simulationHint: string
     lumiHint: string
   }
   lumi: {
     title: string
+    subtitle: string
     body: string
+    emptyTitle: string
     input: string
     send: string
     sending: string
     error: string
+    next: string
+    sources: string
     relatedLesson: string
     starterPrompts: string[]
   }
@@ -114,6 +144,13 @@ type Copy = {
 
 export const copy = {
   en: {
+    common: {
+      confidence: {
+        low: "Needs review",
+        medium: "Improving",
+        high: "Strong",
+      },
+    },
     nav: {
       waitlist: "Waitlist",
       login: "Log in",
@@ -176,14 +213,28 @@ export const copy = {
       signupHeading: "Go Beyond",
     },
     dashboard: {
-      title: "Student dashboard",
-      body:
-        "The first dashboard shows progress, weak skills, a next lesson, and Lumi insights from the Physics module.",
+      title: "Dashboard",
+      body: "Pick up where you left off and see what Lumi recommends next.",
+      greeting: "Welcome back",
       continueLearning: "Continue learning",
       nextLesson: "Recommended next",
       weakSkill: "Skill to review",
       insight: "Lumi insight",
       recentPractice: "Recent practice",
+      labels: {
+        courseProgress: "Course progress",
+        lessonsDone: "Lessons done",
+        recentScore: "Recent score",
+        practiceStreak: "Practice streak",
+        skillMastery: "Skill mastery",
+        minutes: "min",
+        review: "Review",
+        practice: "Practice",
+        streakUnit: (days) => (days === 1 ? "day" : "days"),
+        zeroProgress: "Start your first lesson to track progress.",
+        zeroScore: "Answer your first question to see a score.",
+        zeroStreak: "Start your streak today.",
+      },
     },
     insights: {
       title: "Insights",
@@ -199,7 +250,7 @@ export const copy = {
     courses: {
       title: "Courses",
       body:
-        "The private beta starts with one published Physics course and a three-lesson module.",
+        "Interactive lessons with built-in questions, instant feedback, and Lumi by your side.",
       module: "Module",
       lessons: "Lessons",
       start: "Start lesson",
@@ -220,6 +271,10 @@ export const copy = {
       saved: "Saved",
       saving: "Saving...",
       continue: "Continue",
+      markRead: "Mark as read",
+      markedRead: "Read",
+      saveError: "Could not save progress.",
+      answerError: "Could not save your answer.",
       gravity: "Gravity",
       simulationHint: "Interact with the simulation before continuing.",
       lumiHint:
@@ -227,11 +282,15 @@ export const copy = {
     },
     lumi: {
       title: "Lumi",
+      subtitle: "Your study buddy",
       body: "Ask about the Physics module: gravity, projectile motion, or forces.",
+      emptyTitle: "Hi, I'm Lumi",
       input: "Ask Lumi about Physics",
       send: "Send",
       sending: "Sending...",
       error: "Lumi could not respond. Try again.",
+      next: "Next",
+      sources: "Sources",
       relatedLesson: "Open related lesson",
       starterPrompts: [
         "Why does stronger gravity make things fall faster?",
@@ -241,6 +300,13 @@ export const copy = {
     },
   },
   th: {
+    common: {
+      confidence: {
+        low: "ควรทบทวน",
+        medium: "กำลังพัฒนา",
+        high: "แม่นยำ",
+      },
+    },
     nav: {
       waitlist: "รายชื่อรอ",
       login: "เข้าสู่ระบบ",
@@ -302,14 +368,28 @@ export const copy = {
       signupHeading: "ก้าวไปไกลกว่าเดิม",
     },
     dashboard: {
-      title: "แดชบอร์ดผู้เรียน",
-      body:
-        "แดชบอร์ดแรกจะแสดงความก้าวหน้า ทักษะที่อ่อน บทเรียนถัดไป และ Lumi insights จากโมดูลฟิสิกส์",
+      title: "แดชบอร์ด",
+      body: "เรียนต่อจากจุดที่ค้างไว้ และดูว่า Lumi แนะนำอะไรเป็นขั้นต่อไป",
+      greeting: "ยินดีต้อนรับกลับ",
       continueLearning: "เรียนต่อ",
       nextLesson: "แนะนำถัดไป",
       weakSkill: "ทักษะที่ควรทบทวน",
       insight: "คำแนะนำจาก Lumi",
       recentPractice: "การฝึกล่าสุด",
+      labels: {
+        courseProgress: "ความคืบหน้าของคอร์ส",
+        lessonsDone: "บทเรียนที่จบแล้ว",
+        recentScore: "คะแนนล่าสุด",
+        practiceStreak: "ฝึกต่อเนื่อง",
+        skillMastery: "ความเข้าใจรายทักษะ",
+        minutes: "นาที",
+        review: "ทบทวน",
+        practice: "ฝึกฝน",
+        streakUnit: () => "วัน",
+        zeroProgress: "เริ่มบทเรียนแรกเพื่อติดตามความคืบหน้า",
+        zeroScore: "ตอบคำถามแรกเพื่อดูคะแนนของคุณ",
+        zeroStreak: "เริ่มสถิติฝึกต่อเนื่องของคุณวันนี้",
+      },
     },
     insights: {
       title: "ข้อมูลเชิงลึก",
@@ -325,7 +405,7 @@ export const copy = {
     courses: {
       title: "คอร์ส",
       body:
-        "private beta เริ่มจากคอร์สฟิสิกส์หนึ่งคอร์สและโมดูลสามบทเรียน",
+        "บทเรียนแบบโต้ตอบพร้อมคำถามในตัว ผลตอบรับทันที และ Lumi คอยช่วยข้างๆ คุณ",
       module: "โมดูล",
       lessons: "บทเรียน",
       start: "เริ่มบทเรียน",
@@ -347,6 +427,10 @@ export const copy = {
       saved: "บันทึกแล้ว",
       saving: "กำลังบันทึก...",
       continue: "ดำเนินการต่อ",
+      markRead: "อ่านจบแล้ว",
+      markedRead: "อ่านแล้ว",
+      saveError: "บันทึกความคืบหน้าไม่สำเร็จ",
+      answerError: "บันทึกคำตอบไม่สำเร็จ",
       gravity: "แรงโน้มถ่วง",
       simulationHint: "ลองปรับการจำลองก่อนดำเนินการต่อ",
       lumiHint:
@@ -354,11 +438,15 @@ export const copy = {
     },
     lumi: {
       title: "Lumi",
+      subtitle: "เพื่อนคู่คิดในการเรียนของคุณ",
       body: "ถามเกี่ยวกับฟิสิกส์: แรงโน้มถ่วง โพรเจกไทล์ หรือแรง",
+      emptyTitle: "สวัสดี ฉันคือ Lumi",
       input: "ถาม Lumi เกี่ยวกับฟิสิกส์",
       send: "ส่ง",
       sending: "กำลังส่ง...",
       error: "Lumi ตอบไม่ได้ในตอนนี้ ลองอีกครั้ง",
+      next: "ถัดไป",
+      sources: "แหล่งอ้างอิง",
       relatedLesson: "เปิดบทเรียนที่เกี่ยวข้อง",
       starterPrompts: [
         "ทำไมแรงโน้มถ่วงที่มากขึ้นทำให้วัตถุตกเร็วขึ้น?",

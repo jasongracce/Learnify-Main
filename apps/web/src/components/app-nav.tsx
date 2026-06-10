@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { Locale } from "@learnify/shared"
+import { LanguageToggle } from "@/components/language-toggle"
 import { LogoutButton } from "@/components/logout-button"
 import { copy } from "@/lib/copy"
 
@@ -19,15 +20,15 @@ export function AppNav({ active, locale }: AppNavProps) {
   const labels = copy[locale].nav
 
   return (
-    <header className="border-b border-[var(--border)] bg-[var(--surface-strong)]">
-      <div className="learnify-container flex min-h-14 flex-col gap-3 py-3 md:flex-row md:items-center md:justify-between">
+    <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[color:rgba(249,249,247,0.85)] backdrop-blur">
+      <div className="learnify-container flex min-h-14 items-center justify-between gap-3 py-2.5">
         <Link
-          className="learnify-wordmark text-sm"
+          className="learnify-wordmark text-lg leading-none"
           href={`/${locale}/app/dashboard`}
         >
-          LEARNIFY
+          Learnify.
         </Link>
-        <nav className="flex flex-wrap items-center gap-1 text-sm">
+        <nav className="-mx-1 flex items-center gap-1 overflow-x-auto px-1 text-sm">
           {navItems.map((item) => {
             const isActive =
               active === item.key || (active === "lesson" && item.key === "courses")
@@ -36,8 +37,8 @@ export function AppNav({ active, locale }: AppNavProps) {
               <Link
                 className={
                   isActive
-                    ? "rounded-[var(--radius)] bg-[var(--surface)] px-3 py-2 text-[var(--text)]"
-                    : "rounded-[var(--radius)] px-3 py-2 text-[var(--muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)]"
+                    ? "whitespace-nowrap rounded-[var(--radius-pill)] bg-[var(--text)] px-3.5 py-1.5 font-medium text-white"
+                    : "whitespace-nowrap rounded-[var(--radius-pill)] px-3.5 py-1.5 text-[var(--muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text)]"
                 }
                 href={`/${locale}/app/${item.href}`}
                 key={item.key}
@@ -47,7 +48,10 @@ export function AppNav({ active, locale }: AppNavProps) {
             )
           })}
         </nav>
-        <LogoutButton className="w-fit" locale={locale} />
+        <div className="flex items-center gap-2">
+          <LanguageToggle locale={locale} />
+          <LogoutButton className="hidden sm:inline-flex" locale={locale} />
+        </div>
       </div>
     </header>
   )

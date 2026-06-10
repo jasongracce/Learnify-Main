@@ -23,7 +23,7 @@ export function LogoutButton({ className = "", locale }: LogoutButtonProps) {
 
   return (
     <button
-      className={`inline-flex items-center gap-2 rounded-[var(--radius)] border border-[var(--border)] px-3 py-2 text-sm text-[var(--muted)] transition-colors hover:border-[var(--brand)] hover:text-[var(--text)] ${className}`}
+      className={`inline-flex items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted)] transition-colors hover:border-[var(--muted-soft)] hover:text-[var(--text)] ${className}`}
       onClick={handleLogout}
       type="button"
     >

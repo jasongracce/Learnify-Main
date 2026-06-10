@@ -19,7 +19,7 @@ export default async function LocaleLayout({
   }
 
   return (
-    <div className="learnify-shell">
+    <div className="learnify-shell" lang={locale}>
       <TopNav locale={locale as Locale} />
       {children}
     </div>
