@@ -139,7 +139,7 @@ async function getCompletedBlockIds(input: {
   try {
     const supabase = await createSupabaseServerClient()
 
-    return getCompletedLessonBlockSlugsForUser({
+    return await getCompletedLessonBlockSlugsForUser({
       supabase,
       userId: input.userId,
       lessonSlug: input.lessonSlug,
@@ -153,7 +153,7 @@ async function getLumiHistory(input: { userId: string; lessonSlug: string }) {
   try {
     const supabase = await createSupabaseServerClient()
 
-    return getRecentLumiMessagesForUser({
+    return await getRecentLumiMessagesForUser({
       supabase,
       userId: input.userId,
       currentLessonSlug: input.lessonSlug,

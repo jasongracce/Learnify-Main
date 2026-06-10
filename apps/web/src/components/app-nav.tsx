@@ -50,7 +50,7 @@ export function AppNav({ active, locale }: AppNavProps) {
         </nav>
         <div className="flex items-center gap-2">
           <LanguageToggle locale={locale} />
-          <LogoutButton className="hidden sm:inline-flex" locale={locale} />
+          <LogoutButton className="whitespace-nowrap" hideLabelOnMobile locale={locale} />
         </div>
       </div>
     </header>

@@ -32,7 +32,7 @@ async function getLumiHistory(userId: string) {
   try {
     const supabase = await createSupabaseServerClient()
 
-    return getRecentLumiMessagesForUser({
+    return await getRecentLumiMessagesForUser({
       supabase,
       userId,
       limit: 20,
