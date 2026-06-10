@@ -21,7 +21,7 @@ export default async function HomePage({ params }: HomePageProps) {
     <main>
       <section className="learnify-container grid gap-8 py-14 md:grid-cols-[1fr_380px] md:items-start md:py-20">
         <div className="max-w-2xl">
-          <h1 className="learnify-wordmark text-4xl text-[var(--text)] md:text-6xl">
+          <h1 className="learnify-wordmark text-5xl text-[var(--text)] md:text-7xl">
             {t.title}
           </h1>
           <p className="mt-6 text-lg leading-8 text-[var(--muted)]">
@@ -30,13 +30,13 @@ export default async function HomePage({ params }: HomePageProps) {
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href={`/${locale}/waitlist`}
-              className="rounded-[var(--radius)] bg-[var(--brand)] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[var(--brand-strong)]"
+              className="rounded-[var(--radius-pill)] bg-[var(--text)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black"
             >
               {t.primary}
             </Link>
             <Link
               href={`/${locale}/app/courses`}
-              className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-2.5 text-sm font-medium transition-colors hover:border-[var(--brand)]"
+              className="rounded-[var(--radius-pill)] border border-[var(--border)] bg-[var(--surface-strong)] px-5 py-2.5 text-sm font-medium transition-colors hover:border-[var(--muted-soft)]"
             >
               {t.secondary}
             </Link>

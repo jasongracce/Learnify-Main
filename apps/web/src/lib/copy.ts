@@ -163,7 +163,7 @@ export const copy = {
       language: "TH",
     },
     home: {
-      title: "LEARNIFY",
+      title: "Learnify.",
       intro:
         "A bilingual learning platform for Thai students, starting with interactive Physics lessons and Lumi-guided feedback.",
       primary: "Join the waitlist",
@@ -171,7 +171,7 @@ export const copy = {
       course: "Physics Foundations",
       lesson: "Gravity and Falling Objects",
       detail:
-        "Milestone 1 begins with a private beta gate, one course module, embedded questions, progress tracking, and rule-based Lumi insights.",
+        "Interactive lessons, instant feedback on every question, and Lumi insights that show you exactly what to study next.",
     },
     waitlist: {
       title: "Join the private beta waitlist",
@@ -319,7 +319,7 @@ export const copy = {
       language: "EN",
     },
     home: {
-      title: "LEARNIFY",
+      title: "Learnify.",
       intro:
         "แพลตฟอร์มเรียนรู้สองภาษาไทยและอังกฤษ เริ่มจากบทเรียนฟิสิกส์แบบโต้ตอบพร้อมคำแนะนำจาก Lumi",
       primary: "เข้าร่วมรายชื่อรอ",
@@ -327,7 +327,7 @@ export const copy = {
       course: "พื้นฐานฟิสิกส์",
       lesson: "แรงโน้มถ่วงและวัตถุที่ตก",
       detail:
-        "Milestone 1 เริ่มจาก private beta gate หนึ่งโมดูลคอร์ส คำถามในบทเรียน การติดตามความก้าวหน้า และ Lumi insights แบบ rule-based",
+        "บทเรียนแบบโต้ตอบ ผลตอบรับทันทีในทุกคำถาม และคำแนะนำจาก Lumi ว่าควรเรียนอะไรต่อ",
     },
     waitlist: {
       title: "เข้าร่วมรายชื่อรอ private beta",

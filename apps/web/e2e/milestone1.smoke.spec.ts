@@ -11,7 +11,7 @@ test.describe("Milestone 1 public and gated routes", () => {
     const response = await request.get("/en")
 
     expect(response.ok()).toBe(true)
-    expect(await response.text()).toContain("LEARNIFY")
+    expect(await response.text()).toContain("Learnify.")
   })
 
   test("redirects unauthenticated lesson traffic to login", async ({
@@ -54,7 +54,7 @@ test.describe("Milestone 1 signed-in beta flow", () => {
   test("renders dashboard, lesson, and insights", async ({ request }) => {
     const dashboard = await request.get("/en/app/dashboard")
     expect(dashboard.ok()).toBe(true)
-    expect(await dashboard.text()).toContain("Student dashboard")
+    expect(await dashboard.text()).toContain("Welcome back")
 
     const lesson = await request.get(
       "/en/app/lessons/gravity-and-falling-objects"

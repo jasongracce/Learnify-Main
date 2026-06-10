@@ -71,7 +71,7 @@ export function WaitlistForm({ locale }: WaitlistFormProps) {
       <label className="grid gap-2 text-sm font-medium">
         {t.email}
         <input
-          className="rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 outline-none focus:border-[var(--brand)]"
+          className="rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 outline-none focus:border-[var(--muted-soft)]"
           name="email"
           type="email"
           placeholder="student@example.com"
@@ -81,7 +81,7 @@ export function WaitlistForm({ locale }: WaitlistFormProps) {
       <label className="grid gap-2 text-sm font-medium">
         {t.name}
         <input
-          className="rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 outline-none focus:border-[var(--brand)]"
+          className="rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 outline-none focus:border-[var(--muted-soft)]"
           name="name"
           type="text"
         />
@@ -90,7 +90,7 @@ export function WaitlistForm({ locale }: WaitlistFormProps) {
         <label className="grid gap-2 text-sm font-medium">
           {t.role}
           <input
-            className="rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 outline-none focus:border-[var(--brand)]"
+            className="rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 outline-none focus:border-[var(--muted-soft)]"
             name="role"
             type="text"
             placeholder="Student"
@@ -99,7 +99,7 @@ export function WaitlistForm({ locale }: WaitlistFormProps) {
         <label className="grid gap-2 text-sm font-medium">
           {t.gradeLevel}
           <input
-            className="rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 outline-none focus:border-[var(--brand)]"
+            className="rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 outline-none focus:border-[var(--muted-soft)]"
             name="grade_level"
             type="text"
             placeholder="Grade 10"
@@ -109,12 +109,12 @@ export function WaitlistForm({ locale }: WaitlistFormProps) {
       <label className="grid gap-2 text-sm font-medium">
         {t.interestReason}
         <textarea
-          className="min-h-24 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 outline-none focus:border-[var(--brand)]"
+          className="min-h-24 rounded-[var(--radius)] border border-[var(--border)] bg-white px-3 py-2 outline-none focus:border-[var(--muted-soft)]"
           name="interest_reason"
         />
       </label>
       <button
-        className="w-fit rounded-[var(--radius)] bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--brand-strong)] disabled:opacity-60"
+        className="w-fit rounded-[var(--radius-pill)] bg-[var(--text)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-black disabled:opacity-60"
         disabled={state.status === "saving"}
         type="submit"
       >
