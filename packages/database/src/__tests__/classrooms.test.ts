@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { approveJoinRequest, type SupabaseClient } from "../index"
+import {
+  approveJoinRequest,
+  removeStudentFromClassroom,
+  type SupabaseClient,
+} from "../index"
 
 type QueryResult = {
   data?: unknown
@@ -296,5 +300,47 @@ describe("approveJoinRequest", () => {
           call.table === "classroom_memberships" && call.method === "upsert"
       )
     ).toBe(false)
+  })
+})
+
+describe("removeStudentFromClassroom", () => {
+  it("removes only the classroom membership", async () => {
+    const { calls, supabase } = createMockSupabase({
+      classroom_memberships: [
+        {
+          data: {
+            id: "classroom-membership-1",
+            classroom_id: "classroom-1",
+            student_user_id: "student-user-1",
+            status: "removed",
+            removed_by: "teacher-user-1",
+          },
+        },
+      ],
+    })
+
+    await expect(
+      removeStudentFromClassroom({
+        supabase,
+        classroomMembershipId: "classroom-membership-1",
+        removedBy: "teacher-user-1",
+        now: new Date("2026-06-11T00:00:00.000Z"),
+      })
+    ).resolves.toMatchObject({
+      id: "classroom-membership-1",
+      status: "removed",
+    })
+
+    expect(
+      calls.some((call) => call.table === "school_memberships")
+    ).toBe(false)
+    expect(
+      calls.some(
+        (call) =>
+          call.table === "classroom_memberships" &&
+          call.method === "update" &&
+          (call.payload as { status?: string }).status === "removed"
+      )
+    ).toBe(true)
   })
 })

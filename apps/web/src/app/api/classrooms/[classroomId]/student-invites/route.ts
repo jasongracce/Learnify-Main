@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server"
 import {
   getClassroomById,
+  getSchoolById,
+  getMembershipByEmailAndSchool,
+  createPendingMembership,
   createClassroomStudentInvite,
+  createJoinRequest,
+  getOpenJoinRequestForEmail,
   insertAuditEvent,
 } from "@learnify/database"
+import { normalizeInviteEmail } from "@learnify/core"
 import { sendStudentInvitesRequestSchema } from "@learnify/shared"
 import type { ClassroomStudentInviteRecord } from "@learnify/shared"
 import { requireApiSchoolAccess } from "@/lib/auth/classrooms"
+import { inviteTokenResponse, sendInviteEmail } from "@/lib/email/invites"
 
 type Context = { params: Promise<{ classroomId: string }> }
 
@@ -43,8 +50,38 @@ export async function POST(request: Request, { params }: Context) {
       )
     }
 
+    const school = await getSchoolById({
+      supabase: auth.serviceSupabase,
+      schoolId,
+    })
+
+    type InviteResult = {
+      email: string
+      invite: ClassroomStudentInviteRecord
+      joinRequest: unknown
+      inviteToken?: string
+    }
+
     const results = await Promise.allSettled(
-      parsed.data.emails.map(async (email) => {
+      parsed.data.emails.map(async (email): Promise<InviteResult> => {
+        const emailNormalized = normalizeInviteEmail(email)
+        const existingMembership = await getMembershipByEmailAndSchool({
+          supabase: auth.serviceSupabase,
+          emailNormalized,
+          schoolId,
+          role: "student",
+        })
+        const membership =
+          existingMembership && existingMembership.status !== "removed"
+            ? existingMembership
+            : await createPendingMembership({
+                supabase: auth.serviceSupabase,
+                schoolId,
+                emailNormalized,
+                role: "student",
+                invitedBy: auth.user.id,
+              })
+
         const { invite, rawToken } = await createClassroomStudentInvite({
           supabase: auth.serviceSupabase,
           schoolId,
@@ -52,15 +89,42 @@ export async function POST(request: Request, { params }: Context) {
           email,
           invitedBy: auth.user.id,
         })
-        return { email, invite, rawToken }
+
+        const existingJoinRequest = await getOpenJoinRequestForEmail({
+          supabase: auth.serviceSupabase,
+          classroomId,
+          emailNormalized,
+        })
+        const joinRequest =
+          existingJoinRequest ??
+          (await createJoinRequest({
+            supabase: auth.serviceSupabase,
+            schoolId,
+            classroomId,
+            studentUserId: membership.user_id,
+            studentMembershipId: membership.id,
+            source: "email_invite",
+            email,
+            emailNormalized,
+          }))
+
+        await sendInviteEmail({
+          to: email,
+          token: rawToken,
+          locale: parsed.data.locale,
+          kind: "student",
+          schoolName: school?.name,
+          classroomName: classroom.name,
+        })
+
+        return {
+          email,
+          invite,
+          joinRequest,
+          ...inviteTokenResponse(rawToken),
+        }
       })
     )
-
-    type InviteResult = {
-      email: string
-      invite: ClassroomStudentInviteRecord
-      rawToken: string
-    }
 
     const succeeded = results
       .filter(
@@ -70,8 +134,15 @@ export async function POST(request: Request, { params }: Context) {
       .map((r) => r.value)
 
     const failed = results
-      .filter((r): r is PromiseRejectedResult => r.status === "rejected")
-      .map((r, i) => ({ email: parsed.data.emails[i], error: r.reason?.message ?? "Unknown error" }))
+      .map((result, index) => ({ result, email: parsed.data.emails[index] }))
+      .filter(
+        (entry): entry is { result: PromiseRejectedResult; email: string } =>
+          entry.result.status === "rejected"
+      )
+      .map(({ result, email }) => ({
+        email,
+        error: result.reason?.message ?? "Unknown error",
+      }))
 
     if (succeeded.length > 0) {
       await insertAuditEvent({

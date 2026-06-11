@@ -355,6 +355,7 @@ export type JoinByTokenRequest = z.infer<typeof joinByTokenRequestSchema>
 // --- Teacher: send student email invites (bulk paste) ---
 export const sendStudentInvitesRequestSchema = z.object({
   schoolId: z.string().uuid(),
+  locale: z.enum(["en", "th"]).default("en"),
   emails: z
     .string()
     .trim()

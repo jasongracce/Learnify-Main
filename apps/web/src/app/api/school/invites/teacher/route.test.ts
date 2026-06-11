@@ -5,7 +5,9 @@ const mocks = vi.hoisted(() => ({
   createSchoolInvite: vi.fn(),
   getMembershipByEmailAndSchool: vi.fn(),
   insertAuditEvent: vi.fn(),
+  inviteTokenResponse: vi.fn(),
   requireApiSchoolAccess: vi.fn(),
+  sendInviteEmail: vi.fn(),
 }))
 
 vi.mock("@learnify/database", () => ({
@@ -17,6 +19,11 @@ vi.mock("@learnify/database", () => ({
 
 vi.mock("@/lib/auth/classrooms", () => ({
   requireApiSchoolAccess: mocks.requireApiSchoolAccess,
+}))
+
+vi.mock("@/lib/email/invites", () => ({
+  inviteTokenResponse: mocks.inviteTokenResponse,
+  sendInviteEmail: mocks.sendInviteEmail,
 }))
 
 const { POST } = await import("./route")
@@ -51,6 +58,8 @@ describe("POST /api/school/invites/teacher", () => {
       rawToken: "raw-token",
     })
     mocks.insertAuditEvent.mockResolvedValue({})
+    mocks.sendInviteEmail.mockResolvedValue({ sent: true, skipped: false })
+    mocks.inviteTokenResponse.mockReturnValue({ inviteToken: "raw-token" })
   })
 
   it("creates a pending teacher invite without checking teacher seat capacity", async () => {
@@ -70,5 +79,11 @@ describe("POST /api/school/invites/teacher", () => {
       invitedBy: "school-admin-user-1",
     })
     expect(mocks.createSchoolInvite).toHaveBeenCalled()
+    expect(mocks.sendInviteEmail).toHaveBeenCalledWith({
+      to: "teacher@example.com",
+      token: "raw-token",
+      locale: "en",
+      kind: "teacher",
+    })
   })
 })

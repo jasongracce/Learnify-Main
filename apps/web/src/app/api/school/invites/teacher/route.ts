@@ -8,6 +8,7 @@ import {
 import { normalizeInviteEmail } from "@learnify/core"
 import { sendTeacherInviteRequestSchema } from "@learnify/shared"
 import { requireApiSchoolAccess } from "@/lib/auth/classrooms"
+import { inviteTokenResponse, sendInviteEmail } from "@/lib/email/invites"
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null)
@@ -69,7 +70,17 @@ export async function POST(request: Request) {
       metadata: { email: parsed.data.email },
     })
 
-    return NextResponse.json({ invite, membership, inviteToken: rawToken }, { status: 201 })
+    await sendInviteEmail({
+      to: parsed.data.email,
+      token: rawToken,
+      locale: parsed.data.locale,
+      kind: "teacher",
+    })
+
+    return NextResponse.json(
+      { invite, membership, ...inviteTokenResponse(rawToken) },
+      { status: 201 }
+    )
   } catch (error) {
     console.error("sendTeacherInvite failed", {
       error: error instanceof Error ? error.message : error,

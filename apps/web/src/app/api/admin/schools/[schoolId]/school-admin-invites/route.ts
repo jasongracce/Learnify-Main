@@ -9,6 +9,7 @@ import {
 import { normalizeInviteEmail } from "@learnify/core"
 import { sendSchoolAdminInviteRequestSchema } from "@learnify/shared"
 import { requireApiLearnifyAdmin } from "@/lib/auth/classrooms"
+import { inviteTokenResponse, sendInviteEmail } from "@/lib/email/invites"
 
 type Context = { params: Promise<{ schoolId: string }> }
 
@@ -85,12 +86,19 @@ export async function POST(request: Request, { params }: Context) {
       metadata: { email: parsed.data.email, role: "school_admin" },
     })
 
+    await sendInviteEmail({
+      to: parsed.data.email,
+      token: rawToken,
+      locale: parsed.data.locale,
+      kind: "school_admin",
+      schoolName: school.name,
+    })
+
     return NextResponse.json(
       {
         invite,
         membership,
-        // Raw token is returned ONCE for email delivery — never stored again
-        inviteToken: rawToken,
+        ...inviteTokenResponse(rawToken),
       },
       { status: 201 }
     )

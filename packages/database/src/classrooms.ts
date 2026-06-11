@@ -732,7 +732,7 @@ export async function createJoinRequest(input: {
   supabase: SupabaseClient
   schoolId: string
   classroomId: string
-  studentUserId: string
+  studentUserId: string | null
   studentMembershipId: string | null
   source: ClassroomJoinSource
   email?: string
@@ -767,6 +767,43 @@ export async function getJoinRequestById(input: {
     .select("*")
     .eq("id", input.requestId)
     .maybeSingle<ClassroomJoinRequestRecord>()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function getOpenJoinRequestForEmail(input: {
+  supabase: SupabaseClient
+  classroomId: string
+  emailNormalized: string
+}): Promise<ClassroomJoinRequestRecord | null> {
+  const { data, error } = await input.supabase
+    .from("classroom_join_requests")
+    .select("*")
+    .eq("classroom_id", input.classroomId)
+    .eq("email_normalized", input.emailNormalized)
+    .in("status", ["pending_teacher_approval", "pending_capacity"])
+    .maybeSingle<ClassroomJoinRequestRecord>()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function attachUserToJoinRequest(input: {
+  supabase: SupabaseClient
+  requestId: string
+  studentUserId: string
+  studentMembershipId: string
+}): Promise<ClassroomJoinRequestRecord> {
+  const { data, error } = await input.supabase
+    .from("classroom_join_requests")
+    .update({
+      student_user_id: input.studentUserId,
+      student_membership_id: input.studentMembershipId,
+    })
+    .eq("id", input.requestId)
+    .select("*")
+    .single<ClassroomJoinRequestRecord>()
 
   if (error) throw new Error(error.message)
   return data
@@ -985,10 +1022,23 @@ export async function createClassroomMembership(input: {
   return data
 }
 
+export async function getClassroomMembershipById(input: {
+  supabase: SupabaseClient
+  classroomMembershipId: string
+}): Promise<ClassroomMembershipRecord | null> {
+  const { data, error } = await input.supabase
+    .from("classroom_memberships")
+    .select("*")
+    .eq("id", input.classroomMembershipId)
+    .maybeSingle<ClassroomMembershipRecord>()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
 export async function removeStudentFromClassroom(input: {
   supabase: SupabaseClient
-  classroomId: string
-  studentUserId: string
+  classroomMembershipId: string
   removedBy: string
   now?: Date
 }): Promise<ClassroomMembershipRecord> {
@@ -997,8 +1047,7 @@ export async function removeStudentFromClassroom(input: {
   const { data, error } = await input.supabase
     .from("classroom_memberships")
     .update({ status: "removed", removed_at: now, removed_by: input.removedBy })
-    .eq("classroom_id", input.classroomId)
-    .eq("student_user_id", input.studentUserId)
+    .eq("id", input.classroomMembershipId)
     .eq("status", "active")
     .select("*")
     .single<ClassroomMembershipRecord>()
@@ -1068,6 +1117,28 @@ export async function getClassroomStudentInviteByTokenHash(input: {
     .select("*")
     .eq("token_hash", input.tokenHash)
     .maybeSingle<ClassroomStudentInviteRecord>()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function markClassroomStudentInviteAccepted(input: {
+  supabase: SupabaseClient
+  inviteId: string
+  acceptedBy: string
+  now?: Date
+}): Promise<ClassroomStudentInviteRecord> {
+  const now = (input.now ?? new Date()).toISOString()
+  const { data, error } = await input.supabase
+    .from("classroom_student_invites")
+    .update({
+      status: "accepted",
+      accepted_by: input.acceptedBy,
+      accepted_at: now,
+    })
+    .eq("id", input.inviteId)
+    .select("*")
+    .single<ClassroomStudentInviteRecord>()
 
   if (error) throw new Error(error.message)
   return data
