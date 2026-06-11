@@ -227,12 +227,14 @@ export async function createPendingMembership(input: {
   schoolId: string
   emailNormalized: string
   role: SchoolMembershipRole
-  invitedBy: string
+  invitedBy: string | null
+  userId?: string | null
 }): Promise<SchoolMembershipRecord> {
   const { data, error } = await input.supabase
     .from("school_memberships")
     .insert({
       school_id: input.schoolId,
+      user_id: input.userId ?? null,
       role: input.role,
       status: "invited",
       email_normalized: input.emailNormalized,
@@ -245,6 +247,74 @@ export async function createPendingMembership(input: {
 
   if (error) throw new Error(error.message)
   return data
+}
+
+export async function attachUserToMembership(input: {
+  supabase: SupabaseClient
+  membershipId: string
+  userId: string
+}): Promise<SchoolMembershipRecord> {
+  const { data, error } = await input.supabase
+    .from("school_memberships")
+    .update({ user_id: input.userId })
+    .eq("id", input.membershipId)
+    .select("*")
+    .single<SchoolMembershipRecord>()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function getOrCreateStudentMembershipForJoin(input: {
+  supabase: SupabaseClient
+  schoolId: string
+  userId: string
+  email: string
+  invitedBy: string | null
+}): Promise<SchoolMembershipRecord> {
+  const byUser = await getMembershipByUserAndSchool({
+    supabase: input.supabase,
+    userId: input.userId,
+    schoolId: input.schoolId,
+    role: "student",
+  })
+
+  if (byUser && byUser.status !== "removed") {
+    return byUser
+  }
+
+  const emailNormalized = normalizeInviteEmail(input.email)
+  const byEmail = await getMembershipByEmailAndSchool({
+    supabase: input.supabase,
+    emailNormalized,
+    schoolId: input.schoolId,
+    role: "student",
+  })
+
+  if (byEmail && byEmail.status !== "removed") {
+    if (byEmail.user_id && byEmail.user_id !== input.userId) {
+      throw new Error("This school membership belongs to a different account.")
+    }
+
+    if (!byEmail.user_id) {
+      return attachUserToMembership({
+        supabase: input.supabase,
+        membershipId: byEmail.id,
+        userId: input.userId,
+      })
+    }
+
+    return byEmail
+  }
+
+  return createPendingMembership({
+    supabase: input.supabase,
+    schoolId: input.schoolId,
+    emailNormalized,
+    role: "student",
+    invitedBy: input.invitedBy,
+    userId: input.userId,
+  })
 }
 
 export async function activateMembership(input: {
@@ -717,11 +787,24 @@ export async function approveJoinRequest(input: {
   })
   if (!joinRequest) throw new Error("Join request not found.")
 
+  if (!joinRequest.student_membership_id || !joinRequest.student_user_id) {
+    throw new Error("Join request is missing student membership data.")
+  }
+
+  const membership = await getMembershipById({
+    supabase: input.supabase,
+    membershipId: joinRequest.student_membership_id,
+  })
+  if (!membership) throw new Error("Membership not found.")
+
   const summary = await getSchoolSeatSummary({
     supabase: input.supabase,
     schoolId: input.schoolId,
   })
-  const capacityResult = checkStudentSeatCapacity(summary)
+  const capacityResult =
+    membership.status === "active"
+      ? ({ allowed: true, overage: false } as const)
+      : checkStudentSeatCapacity(summary)
   const resolution = resolveJoinRequestApproval({
     currentStatus: joinRequest.status,
     capacityResult,
@@ -746,28 +829,25 @@ export async function approveJoinRequest(input: {
     return { request: data, activated: false }
   }
 
-  // Activate school membership + create classroom membership
-  if (joinRequest.student_membership_id) {
+  if (membership.status !== "active") {
     await activateMembership({
       supabase: input.supabase,
       membershipId: joinRequest.student_membership_id,
-      userId: joinRequest.student_user_id!,
+      userId: joinRequest.student_user_id,
       schoolId: input.schoolId,
       role: "student",
       now,
     })
   }
 
-  if (joinRequest.student_user_id && joinRequest.student_membership_id) {
-    await createClassroomMembership({
-      supabase: input.supabase,
-      schoolId: input.schoolId,
-      classroomId: joinRequest.classroom_id,
-      studentMembershipId: joinRequest.student_membership_id,
-      studentUserId: joinRequest.student_user_id,
-      now,
-    })
-  }
+  await createClassroomMembership({
+    supabase: input.supabase,
+    schoolId: input.schoolId,
+    classroomId: joinRequest.classroom_id,
+    studentMembershipId: joinRequest.student_membership_id,
+    studentUserId: joinRequest.student_user_id,
+    now,
+  })
 
   return { request: data, activated: true }
 }

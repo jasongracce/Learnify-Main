@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server"
 import {
-  getSchoolSeatSummary,
   getMembershipByEmailAndSchool,
   createPendingMembership,
   createSchoolInvite,
   insertAuditEvent,
 } from "@learnify/database"
-import { normalizeInviteEmail, checkTeacherSeatCapacity } from "@learnify/core"
+import { normalizeInviteEmail } from "@learnify/core"
 import { sendTeacherInviteRequestSchema } from "@learnify/shared"
 import { requireApiSchoolAccess } from "@/lib/auth/classrooms"
 
@@ -40,20 +39,6 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "This email already has a teacher membership or pending invite." },
         { status: 409 }
-      )
-    }
-
-    // Check teacher seat capacity before issuing invite
-    const summary = await getSchoolSeatSummary({
-      supabase: auth.serviceSupabase,
-      schoolId,
-    })
-
-    const capacity = checkTeacherSeatCapacity(summary)
-    if (!capacity.allowed) {
-      return NextResponse.json(
-        { error: "No teacher seats available. Upgrade your plan or free an existing seat." },
-        { status: 422 }
       )
     }
 

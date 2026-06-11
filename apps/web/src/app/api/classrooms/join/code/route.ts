@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import {
   getClassroomByJoinCode,
-  getMembershipByUserAndSchool,
+  getOrCreateStudentMembershipForJoin,
   getOpenJoinRequestForStudent,
   createJoinRequest,
   insertAuditEvent,
@@ -40,14 +40,6 @@ export async function POST(request: Request) {
 
     const schoolId = classroom.school_id
 
-    // Get or create school membership for student
-    const membership = await getMembershipByUserAndSchool({
-      supabase: auth.serviceSupabase,
-      userId: auth.user.id,
-      schoolId,
-      role: "student",
-    })
-
     // Check for duplicate open request
     const openRequest = await getOpenJoinRequestForStudent({
       supabase: auth.serviceSupabase,
@@ -63,6 +55,13 @@ export async function POST(request: Request) {
     }
 
     const emailNormalized = normalizeInviteEmail(auth.user.email!)
+    const membership = await getOrCreateStudentMembershipForJoin({
+      supabase: auth.serviceSupabase,
+      schoolId,
+      userId: auth.user.id,
+      email: auth.user.email!,
+      invitedBy: auth.user.id,
+    })
 
     const joinRequest = await createJoinRequest({
       supabase: auth.serviceSupabase,
@@ -79,7 +78,7 @@ export async function POST(request: Request) {
       supabase: auth.serviceSupabase,
       schoolId,
       actorUserId: auth.user.id,
-      actorMembershipId: membership?.id ?? null,
+      actorMembershipId: membership.id,
       eventType: "join_request.created",
       targetType: "classroom_join_request",
       targetId: joinRequest.id,
