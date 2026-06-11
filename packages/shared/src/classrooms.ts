@@ -287,8 +287,20 @@ export type SendSchoolAdminInviteRequest = z.infer<
   typeof sendSchoolAdminInviteRequestSchema
 >
 
+// School-level variant: school admins inviting additional admins pass the
+// school in the body (the Learnify-admin route takes it from the URL).
+export const inviteSchoolAdminRequestSchema =
+  sendSchoolAdminInviteRequestSchema.extend({
+    schoolId: z.string().uuid(),
+  })
+
+export type InviteSchoolAdminRequest = z.infer<
+  typeof inviteSchoolAdminRequestSchema
+>
+
 // --- School admin: invite teacher ---
 export const sendTeacherInviteRequestSchema = z.object({
+  schoolId: z.string().uuid(),
   email: z
     .string()
     .trim()
@@ -317,6 +329,7 @@ export type DeleteInviteRequest = z.infer<typeof deleteInviteRequestSchema>
 
 // --- Teacher: create classroom ---
 export const createClassroomRequestSchema = z.object({
+  schoolId: z.string().uuid(),
   name: z.string().trim().min(1).max(120),
   subjectLabel: z.string().trim().min(1).max(120),
   schoolYear: z.string().trim().max(20).optional(),
@@ -341,6 +354,7 @@ export type JoinByTokenRequest = z.infer<typeof joinByTokenRequestSchema>
 
 // --- Teacher: send student email invites (bulk paste) ---
 export const sendStudentInvitesRequestSchema = z.object({
+  schoolId: z.string().uuid(),
   emails: z
     .string()
     .trim()
