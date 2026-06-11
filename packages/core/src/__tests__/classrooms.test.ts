@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 import {
   buildInviteExpiresAt,
+  checkAdminSeatCapacity,
+  checkStudentSeatCapacity,
+  checkTeacherSeatCapacity,
   generateClassroomSlug,
   generateJoinCode,
   generateRawToken,
@@ -105,5 +108,85 @@ describe("invite expiry", () => {
     expect(
       isInviteExpired(expiresAt, new Date("2026-06-25T00:01:00.000Z"))
     ).toBe(true)
+  })
+})
+
+describe("checkTeacherSeatCapacity", () => {
+  it("allows below the limit", () => {
+    expect(
+      checkTeacherSeatCapacity({ teacherSeatLimit: 5, activeTeachers: 4 })
+    ).toEqual({ allowed: true })
+  })
+
+  it("blocks at the limit — teacher overage is not supported (§2)", () => {
+    expect(
+      checkTeacherSeatCapacity({ teacherSeatLimit: 5, activeTeachers: 5 })
+    ).toEqual({ allowed: false, reason: "no_teacher_seats" })
+  })
+})
+
+describe("checkAdminSeatCapacity", () => {
+  it("allows below the limit and blocks at the limit", () => {
+    expect(
+      checkAdminSeatCapacity({ adminSeatLimit: 3, activeAdmins: 2 })
+    ).toEqual({ allowed: true })
+    expect(
+      checkAdminSeatCapacity({ adminSeatLimit: 3, activeAdmins: 3 })
+    ).toEqual({ allowed: false, reason: "no_admin_seats" })
+  })
+})
+
+describe("checkStudentSeatCapacity — overage matrix (§2)", () => {
+  const atCapacity = { studentSeatLimit: 200, activeStudents: 200 }
+
+  it("below limit: allowed without overage regardless of flags", () => {
+    expect(
+      checkStudentSeatCapacity({
+        studentSeatLimit: 200,
+        activeStudents: 199,
+        studentOverageAllowedByLearnify: false,
+        studentOverageEnabledBySchool: false,
+      })
+    ).toEqual({ allowed: true, overage: false })
+  })
+
+  it("at limit + allowed + enabled: allowed as overage", () => {
+    expect(
+      checkStudentSeatCapacity({
+        ...atCapacity,
+        studentOverageAllowedByLearnify: true,
+        studentOverageEnabledBySchool: true,
+      })
+    ).toEqual({ allowed: true, overage: true })
+  })
+
+  it("at limit + allowed but NOT enabled: blocked", () => {
+    expect(
+      checkStudentSeatCapacity({
+        ...atCapacity,
+        studentOverageAllowedByLearnify: true,
+        studentOverageEnabledBySchool: false,
+      })
+    ).toEqual({ allowed: false, reason: "no_student_seats" })
+  })
+
+  it("at limit + enabled but NOT allowed: blocked", () => {
+    expect(
+      checkStudentSeatCapacity({
+        ...atCapacity,
+        studentOverageAllowedByLearnify: false,
+        studentOverageEnabledBySchool: true,
+      })
+    ).toEqual({ allowed: false, reason: "no_student_seats" })
+  })
+
+  it("at limit + neither: blocked", () => {
+    expect(
+      checkStudentSeatCapacity({
+        ...atCapacity,
+        studentOverageAllowedByLearnify: false,
+        studentOverageEnabledBySchool: false,
+      })
+    ).toEqual({ allowed: false, reason: "no_student_seats" })
   })
 })
