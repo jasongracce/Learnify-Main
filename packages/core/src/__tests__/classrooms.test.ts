@@ -12,6 +12,13 @@ import {
   isInviteExpired,
   normalizeInviteEmail,
   normalizeSubject,
+  resolveJoinRequestApproval,
+  resolveJoinRequestCancellation,
+  resolveJoinRequestRejection,
+  resolveMembershipActivation,
+  resolveMembershipDeactivation,
+  resolveMembershipReactivation,
+  validateInviteAcceptance,
 } from "../index"
 
 describe("normalizeInviteEmail", () => {
@@ -188,5 +195,249 @@ describe("checkStudentSeatCapacity — overage matrix (§2)", () => {
         studentOverageEnabledBySchool: false,
       })
     ).toEqual({ allowed: false, reason: "no_student_seats" })
+  })
+})
+
+describe("resolveMembershipActivation", () => {
+  it("invited + capacity → active, consumes seat", () => {
+    expect(
+      resolveMembershipActivation({
+        currentStatus: "invited",
+        capacityResult: { allowed: true },
+        role: "teacher",
+      })
+    ).toEqual({ nextStatus: "active", consumesSeat: true, overage: false })
+  })
+
+  it("invited + no capacity → pending_capacity, no seat", () => {
+    expect(
+      resolveMembershipActivation({
+        currentStatus: "invited",
+        capacityResult: { allowed: false, reason: "no_teacher_seats" },
+        role: "teacher",
+      })
+    ).toEqual({
+      nextStatus: "pending_capacity",
+      consumesSeat: false,
+      overage: false,
+    })
+  })
+
+  it("invited student + overage capacity → active with overage flag", () => {
+    expect(
+      resolveMembershipActivation({
+        currentStatus: "invited",
+        capacityResult: { allowed: true, overage: true },
+        role: "student",
+      })
+    ).toEqual({ nextStatus: "active", consumesSeat: true, overage: true })
+  })
+
+  it("pending_capacity can activate once capacity frees", () => {
+    expect(
+      resolveMembershipActivation({
+        currentStatus: "pending_capacity",
+        capacityResult: { allowed: true },
+        role: "teacher",
+      })
+    ).toEqual({ nextStatus: "active", consumesSeat: true, overage: false })
+  })
+
+  it("active/inactive/removed cannot activate", () => {
+    for (const currentStatus of ["active", "inactive", "removed"] as const) {
+      const result = resolveMembershipActivation({
+        currentStatus,
+        capacityResult: { allowed: true },
+        role: "student",
+      })
+      expect(result).toHaveProperty("error")
+    }
+  })
+})
+
+describe("resolveMembershipDeactivation", () => {
+  it("active → inactive (frees seat at repo layer, preserves history)", () => {
+    expect(resolveMembershipDeactivation({ currentStatus: "active" })).toEqual({
+      nextStatus: "inactive",
+    })
+  })
+
+  it("invited → inactive (revoking a pending member)", () => {
+    expect(resolveMembershipDeactivation({ currentStatus: "invited" })).toEqual({
+      nextStatus: "inactive",
+    })
+  })
+
+  it("inactive/removed cannot deactivate again", () => {
+    for (const currentStatus of ["inactive", "removed"] as const) {
+      expect(
+        resolveMembershipDeactivation({ currentStatus })
+      ).toHaveProperty("error")
+    }
+  })
+})
+
+describe("resolveMembershipReactivation", () => {
+  it("inactive + capacity → active", () => {
+    expect(
+      resolveMembershipReactivation({
+        currentStatus: "inactive",
+        capacityResult: { allowed: true },
+      })
+    ).toEqual({ nextStatus: "active", consumesSeat: true, overage: false })
+  })
+
+  it("inactive + no capacity → pending_capacity", () => {
+    expect(
+      resolveMembershipReactivation({
+        currentStatus: "inactive",
+        capacityResult: { allowed: false, reason: "no_student_seats" },
+      })
+    ).toEqual({
+      nextStatus: "pending_capacity",
+      consumesSeat: false,
+      overage: false,
+    })
+  })
+
+  it("only inactive memberships can reactivate", () => {
+    for (const currentStatus of [
+      "invited",
+      "active",
+      "pending_capacity",
+      "removed",
+    ] as const) {
+      expect(
+        resolveMembershipReactivation({
+          currentStatus,
+          capacityResult: { allowed: true },
+        })
+      ).toHaveProperty("error")
+    }
+  })
+})
+
+describe("classroom join request transitions", () => {
+  it("pending_teacher_approval + capacity → approved", () => {
+    expect(
+      resolveJoinRequestApproval({
+        currentStatus: "pending_teacher_approval",
+        capacityResult: { allowed: true, overage: false },
+      })
+    ).toEqual({ nextStatus: "approved" })
+  })
+
+  it("pending_teacher_approval + no capacity → pending_capacity (§2)", () => {
+    expect(
+      resolveJoinRequestApproval({
+        currentStatus: "pending_teacher_approval",
+        capacityResult: { allowed: false, reason: "no_student_seats" },
+      })
+    ).toEqual({ nextStatus: "pending_capacity" })
+  })
+
+  it("pending_capacity + freed capacity → approved", () => {
+    expect(
+      resolveJoinRequestApproval({
+        currentStatus: "pending_capacity",
+        capacityResult: { allowed: true, overage: true },
+      })
+    ).toEqual({ nextStatus: "approved" })
+  })
+
+  it("approved/rejected/cancelled cannot be re-approved", () => {
+    for (const currentStatus of ["approved", "rejected", "cancelled"] as const) {
+      expect(
+        resolveJoinRequestApproval({
+          currentStatus,
+          capacityResult: { allowed: true, overage: false },
+        })
+      ).toHaveProperty("error")
+    }
+  })
+
+  it("both pending states can be rejected, terminal states cannot", () => {
+    expect(
+      resolveJoinRequestRejection({ currentStatus: "pending_teacher_approval" })
+    ).toEqual({ nextStatus: "rejected" })
+    expect(
+      resolveJoinRequestRejection({ currentStatus: "pending_capacity" })
+    ).toEqual({ nextStatus: "rejected" })
+    expect(
+      resolveJoinRequestRejection({ currentStatus: "approved" })
+    ).toHaveProperty("error")
+  })
+
+  it("students can cancel both pending states, not terminal ones (§4)", () => {
+    expect(
+      resolveJoinRequestCancellation({
+        currentStatus: "pending_teacher_approval",
+      })
+    ).toEqual({ nextStatus: "cancelled" })
+    expect(
+      resolveJoinRequestCancellation({ currentStatus: "pending_capacity" })
+    ).toEqual({ nextStatus: "cancelled" })
+    expect(
+      resolveJoinRequestCancellation({ currentStatus: "rejected" })
+    ).toHaveProperty("error")
+  })
+})
+
+describe("validateInviteAcceptance (§5 exact email matching)", () => {
+  const base = {
+    inviteEmailNormalized: "teacher@school.ac.th",
+    inviteStatus: "pending" as const,
+    expiresAt: "2026-06-25T00:00:00.000Z",
+    now: new Date("2026-06-12T00:00:00.000Z"),
+  }
+
+  it("accepts an exact normalized email match", () => {
+    expect(
+      validateInviteAcceptance({
+        ...base,
+        acceptingEmailNormalized: "teacher@school.ac.th",
+      })
+    ).toEqual({ valid: true })
+  })
+
+  it("rejects a mismatched email", () => {
+    expect(
+      validateInviteAcceptance({
+        ...base,
+        acceptingEmailNormalized: "other@school.ac.th",
+      })
+    ).toEqual({ valid: false, reason: "email_mismatch" })
+  })
+
+  it("rejects expired invites", () => {
+    expect(
+      validateInviteAcceptance({
+        ...base,
+        acceptingEmailNormalized: "teacher@school.ac.th",
+        now: new Date("2026-07-01T00:00:00.000Z"),
+      })
+    ).toEqual({ valid: false, reason: "expired" })
+  })
+
+  it("rejects already-accepted invites", () => {
+    expect(
+      validateInviteAcceptance({
+        ...base,
+        inviteStatus: "accepted",
+        acceptingEmailNormalized: "teacher@school.ac.th",
+      })
+    ).toEqual({ valid: false, reason: "already_used" })
+  })
+
+  it("rejects revoked and deleted invites", () => {
+    for (const inviteStatus of ["revoked", "deleted"] as const) {
+      expect(
+        validateInviteAcceptance({
+          ...base,
+          inviteStatus,
+          acceptingEmailNormalized: "teacher@school.ac.th",
+        })
+      ).toEqual({ valid: false, reason: "revoked" })
+    }
   })
 })
