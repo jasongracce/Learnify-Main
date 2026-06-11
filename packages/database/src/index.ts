@@ -397,6 +397,8 @@ export async function checkSupabaseWaitlistTable(input: {
   }
 }
 
+export * from "./classrooms"
+
 export async function consumeRateLimit(
   input: ConsumeRateLimitInput
 ): Promise<RateLimitResult> {
