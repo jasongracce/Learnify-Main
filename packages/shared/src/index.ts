@@ -303,3 +303,5 @@ export {
   physicsQuestions,
   physicsSkills,
 } from "./content/physics-foundations"
+
+export * from "./classrooms"

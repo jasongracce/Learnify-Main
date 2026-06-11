@@ -383,3 +383,5 @@ export function selectLocalizedText(
 
   return record.en
 }
+
+export * from "./classrooms"
