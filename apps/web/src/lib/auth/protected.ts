@@ -5,9 +5,16 @@ import {
 } from "@learnify/database"
 import type { Locale } from "@learnify/shared"
 import { requireSupabaseServiceEnv } from "@/lib/env"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import {
+  createSupabaseServerClient,
+  hasSupabaseAuthCookie,
+} from "@/lib/supabase/server"
 
 export async function requireBetaUser(locale: Locale) {
+  if (!(await hasSupabaseAuthCookie())) {
+    redirect(`/${locale}/auth/login`)
+  }
+
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },

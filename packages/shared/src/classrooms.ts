@@ -75,6 +75,11 @@ export const schoolAuditEventTypes = [
   "join_request.approved",
   "join_request.rejected",
   "join_request.cancelled",
+  "assignment.created",
+  "assignment.updated",
+  "assignment.published",
+  "assignment.submission_graded",
+  "assignment.submission_returned",
 ] as const
 
 // ---------------------------------------------------------------------------
@@ -330,6 +335,7 @@ export type DeleteInviteRequest = z.infer<typeof deleteInviteRequestSchema>
 // --- Teacher: create classroom ---
 export const createClassroomRequestSchema = z.object({
   schoolId: z.string().uuid(),
+  locale: z.enum(["en", "th"]).default("en"),
   name: z.string().trim().min(1).max(120),
   subjectLabel: z.string().trim().min(1).max(120),
   schoolYear: z.string().trim().max(20).optional(),

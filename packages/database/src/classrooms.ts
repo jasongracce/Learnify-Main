@@ -22,6 +22,7 @@ import {
 import type {
   SchoolRecord,
   SchoolMembershipRecord,
+  SchoolMembershipStatus,
   SchoolInviteRecord,
   ClassroomRecord,
   ClassroomJoinRequestRecord,
@@ -35,6 +36,24 @@ import type {
   SchoolMembershipRole,
   ClassroomJoinSource,
 } from "@learnify/shared"
+
+export type SchoolAdminNotificationSummary = {
+  subscriptionStatus: SchoolRecord["subscription_status"]
+  pendingCapacityMemberships: number
+  pendingInvites: number
+  adminSeatsUsed: number
+  adminSeatLimit: number
+  teacherSeatsUsed: number
+  teacherSeatLimit: number
+  studentSeatsUsed: number
+  studentSeatLimit: number
+}
+
+export type ClassroomRosterDetail = {
+  classroom: ClassroomRecord
+  activeRoster: ClassroomMembershipRecord[]
+  pendingRequests: ClassroomJoinRequestRecord[]
+}
 
 // ---------------------------------------------------------------------------
 // School queries
@@ -190,6 +209,44 @@ export async function getMembershipByUserAndSchool(input: {
   return data
 }
 
+export async function listCurrentSchoolMemberships(input: {
+  supabase: SupabaseClient
+  userId: string
+}): Promise<SchoolMembershipRecord[]> {
+  const { data, error } = await input.supabase
+    .from("school_memberships")
+    .select("*")
+    .eq("user_id", input.userId)
+    .neq("status", "removed")
+    .order("created_at", { ascending: false })
+    .returns<SchoolMembershipRecord[]>()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function listSchoolMemberships(input: {
+  supabase: SupabaseClient
+  schoolId: string
+  role?: SchoolMembershipRole
+  status?: SchoolMembershipStatus
+}): Promise<SchoolMembershipRecord[]> {
+  let query = input.supabase
+    .from("school_memberships")
+    .select("*")
+    .eq("school_id", input.schoolId)
+    .order("role", { ascending: true })
+    .order("status", { ascending: true })
+    .order("created_at", { ascending: false })
+
+  if (input.role) query = query.eq("role", input.role)
+  if (input.status) query = query.eq("status", input.status)
+
+  const { data, error } = await query.returns<SchoolMembershipRecord[]>()
+  if (error) throw new Error(error.message)
+  return data
+}
+
 export async function getMembershipById(input: {
   supabase: SupabaseClient
   membershipId: string
@@ -263,6 +320,30 @@ export async function attachUserToMembership(input: {
 
   if (error) throw new Error(error.message)
   return data
+}
+
+export async function attachSchoolIdentityByEmail(input: {
+  supabase: SupabaseClient
+  email: string
+  userId: string
+}): Promise<void> {
+  const emailNormalized = normalizeInviteEmail(input.email)
+
+  const { error: membershipError } = await input.supabase
+    .from("school_memberships")
+    .update({ user_id: input.userId })
+    .eq("email_normalized", emailNormalized)
+    .is("user_id", null)
+
+  if (membershipError) throw new Error(membershipError.message)
+
+  const { error: requestError } = await input.supabase
+    .from("classroom_join_requests")
+    .update({ student_user_id: input.userId })
+    .eq("email_normalized", emailNormalized)
+    .is("student_user_id", null)
+
+  if (requestError) throw new Error(requestError.message)
 }
 
 export async function getOrCreateStudentMembershipForJoin(input: {
@@ -562,6 +643,40 @@ export async function listPendingSchoolInvites(input: {
   return data
 }
 
+export async function getSchoolAdminNotificationSummary(input: {
+  supabase: SupabaseClient
+  schoolId: string
+}): Promise<SchoolAdminNotificationSummary> {
+  const [school, seats, pendingCapacityMemberships, pendingInvites] =
+    await Promise.all([
+      getSchoolById({ supabase: input.supabase, schoolId: input.schoolId }),
+      getSchoolSeatSummary({ supabase: input.supabase, schoolId: input.schoolId }),
+      listSchoolMemberships({
+        supabase: input.supabase,
+        schoolId: input.schoolId,
+        status: "pending_capacity",
+      }),
+      listPendingSchoolInvites({
+        supabase: input.supabase,
+        schoolId: input.schoolId,
+      }),
+    ])
+
+  if (!school) throw new Error("School not found.")
+
+  return {
+    subscriptionStatus: school.subscription_status,
+    pendingCapacityMemberships: pendingCapacityMemberships.length,
+    pendingInvites: pendingInvites.length,
+    adminSeatsUsed: seats.activeAdmins,
+    adminSeatLimit: seats.adminSeatLimit,
+    teacherSeatsUsed: seats.activeTeachers,
+    teacherSeatLimit: seats.teacherSeatLimit,
+    studentSeatsUsed: seats.activeStudents,
+    studentSeatLimit: seats.studentSeatLimit,
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Classrooms
 // ---------------------------------------------------------------------------
@@ -571,7 +686,7 @@ export async function createClassroom(input: {
   schoolId: string
   ownerMembershipId: string
   request: CreateClassroomRequest
-}): Promise<ClassroomRecord> {
+}): Promise<{ classroom: ClassroomRecord; rawJoinToken: string }> {
   const slug = generateClassroomSlug(input.request.name)
   const joinCode = generateJoinCode()
   const rawToken = generateRawToken()
@@ -598,7 +713,7 @@ export async function createClassroom(input: {
     .single<ClassroomRecord>()
 
   if (error) throw new Error(error.message)
-  return data
+  return { classroom: data, rawJoinToken: rawToken }
 }
 
 export async function getClassroomBySlug(input: {
@@ -673,10 +788,35 @@ export async function listClassroomsForTeacher(input: {
   return data
 }
 
+export async function getClassroomRosterDetailBySlug(input: {
+  supabase: SupabaseClient
+  classroomSlug: string
+}): Promise<ClassroomRosterDetail | null> {
+  const classroom = await getClassroomBySlug({
+    supabase: input.supabase,
+    slug: input.classroomSlug,
+  })
+
+  if (!classroom) return null
+
+  const [activeRoster, pendingRequests] = await Promise.all([
+    listActiveClassroomMemberships({
+      supabase: input.supabase,
+      classroomId: classroom.id,
+    }),
+    listPendingJoinRequestsForClassroom({
+      supabase: input.supabase,
+      classroomId: classroom.id,
+    }),
+  ])
+
+  return { classroom, activeRoster, pendingRequests }
+}
+
 export async function regenerateJoinCode(input: {
   supabase: SupabaseClient
   classroomId: string
-}): Promise<ClassroomRecord> {
+}): Promise<{ classroom: ClassroomRecord; rawJoinToken: string }> {
   const newCode = generateJoinCode()
   const rawToken = generateRawToken()
   const newTokenHash = hashToken(rawToken)
@@ -689,7 +829,7 @@ export async function regenerateJoinCode(input: {
     .single<ClassroomRecord>()
 
   if (error) throw new Error(error.message)
-  return data
+  return { classroom: data, rawJoinToken: rawToken }
 }
 
 export async function disableJoinCode(input: {
@@ -956,6 +1096,22 @@ export async function listPendingJoinRequestsForClassroom(input: {
     .eq("classroom_id", input.classroomId)
     .in("status", ["pending_teacher_approval", "pending_capacity"])
     .order("requested_at", { ascending: true })
+    .returns<ClassroomJoinRequestRecord[]>()
+
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function listOpenJoinRequestsForStudent(input: {
+  supabase: SupabaseClient
+  studentUserId: string
+}): Promise<ClassroomJoinRequestRecord[]> {
+  const { data, error } = await input.supabase
+    .from("classroom_join_requests")
+    .select("*")
+    .eq("student_user_id", input.studentUserId)
+    .in("status", ["pending_teacher_approval", "pending_capacity"])
+    .order("requested_at", { ascending: false })
     .returns<ClassroomJoinRequestRecord[]>()
 
   if (error) throw new Error(error.message)

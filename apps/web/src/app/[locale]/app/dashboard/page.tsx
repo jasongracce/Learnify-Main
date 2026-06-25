@@ -4,6 +4,7 @@ import {
   ArrowRight,
   BookOpen,
   Brain,
+  ClipboardList,
   CheckCircle2,
   Clock3,
   Flame,
@@ -12,10 +13,15 @@ import {
 } from "lucide-react"
 import type { Locale } from "@learnify/shared"
 import { selectLocalizedText } from "@learnify/core"
+import {
+  createSupabaseServiceClientFromEnv,
+  listStudentAssignments,
+} from "@learnify/database"
 import { AppNav } from "@/components/app-nav"
 import { requireBetaUser } from "@/lib/auth/protected"
 import { getStudentDashboardData } from "@/lib/dashboard-data"
 import { copy } from "@/lib/copy"
+import { requireSupabaseServiceEnv } from "@/lib/env"
 
 type DashboardPageProps = {
   params: Promise<{ locale: Locale }>
@@ -24,6 +30,7 @@ type DashboardPageProps = {
 const dashboardLabels = {
   en: {
     confidence: "Confidence",
+    assignments: "Assignments",
     courseProgress: "Course progress",
     currentModule: "Motion, Gravity, and Forces",
     lessonsDone: "Lessons done",
@@ -39,6 +46,7 @@ const dashboardLabels = {
   },
   th: {
     confidence: "Confidence",
+    assignments: "Assignments",
     courseProgress: "Course progress",
     currentModule: "Motion, Gravity, and Forces",
     lessonsDone: "Lessons done",
@@ -63,6 +71,7 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
     userId: user.id,
     locale,
   })
+  const assignmentCount = await getAssignmentCount(user.id)
   const nextLessonTitle = selectLocalizedText(
     {
       en: dashboard.nextLesson.title_en,
@@ -162,6 +171,21 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
               </div>
 
               <div className="border-t border-[var(--border)] px-5 py-4">
+                <Link
+                  className="flex items-center justify-between gap-4 rounded-[var(--radius)] border border-[var(--border)] bg-white px-4 py-3 text-sm transition-colors hover:border-[var(--brand)]"
+                  href={`/${locale}/app/assignments`}
+                >
+                  <span className="inline-flex items-center gap-2 font-medium">
+                    <ClipboardList aria-hidden="true" size={16} />
+                    {labels.assignments}
+                  </span>
+                  <span className="text-[var(--muted)]">
+                    {assignmentCount}
+                  </span>
+                </Link>
+              </div>
+
+              <div className="border-t border-[var(--border)] px-5 py-4">
                 <div className="mb-2 flex items-center justify-between text-sm">
                   <span className="text-[var(--muted)]">
                     {labels.currentModule}
@@ -254,6 +278,22 @@ export default async function DashboardPage({ params }: DashboardPageProps) {
       </main>
     </>
   )
+}
+
+async function getAssignmentCount(userId: string) {
+  try {
+    const serviceSupabase = createSupabaseServiceClientFromEnv(
+      requireSupabaseServiceEnv()
+    )
+    const assignments = await listStudentAssignments({
+      supabase: serviceSupabase,
+      studentUserId: userId,
+    })
+
+    return assignments.length
+  } catch {
+    return 0
+  }
 }
 
 function MetricCard({

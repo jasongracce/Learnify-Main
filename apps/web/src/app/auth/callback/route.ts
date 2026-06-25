@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { localeSchema } from "@learnify/shared"
-import { ensureRegisteredAccess } from "@/app/api/auth/_lib"
+import { ensureRegisteredAccess, getDefaultAppRedirect } from "@/app/api/auth/_lib"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 export async function GET(request: Request) {
@@ -34,6 +34,7 @@ export async function GET(request: Request) {
     email: user.email,
     locale,
   })
+  const redirectTo = await getDefaultAppRedirect({ userId: user.id, locale })
 
-  return NextResponse.redirect(new URL(`/${locale}/app/dashboard`, request.url))
+  return NextResponse.redirect(new URL(redirectTo, request.url))
 }

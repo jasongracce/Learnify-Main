@@ -4,19 +4,60 @@ import { LogoutButton } from "@/components/logout-button"
 import { copy } from "@/lib/copy"
 
 type AppNavProps = {
+  classroomBadge?: number
   locale: Locale
-  active: "dashboard" | "courses" | "lumi" | "insights" | "lesson"
+  schoolBadge?: number
+  showAdmin?: boolean
+  showClassrooms?: boolean
+  showSchool?: boolean
+  active:
+    | "dashboard"
+    | "courses"
+    | "assignments"
+    | "lumi"
+    | "insights"
+    | "lesson"
+    | "school"
+    | "schoolUsers"
+    | "schoolInvites"
+    | "classrooms"
+    | "classroomRoster"
+    | "adminSchools"
 }
 
 const navItems = [
   { key: "dashboard", href: "dashboard" },
   { key: "courses", href: "courses" },
+  { key: "assignments", href: "assignments" },
   { key: "lumi", href: "lumi" },
   { key: "insights", href: "insights" },
 ] as const
 
-export function AppNav({ active, locale }: AppNavProps) {
+const roleNavItems = [
+  { key: "classrooms", href: "classrooms", flag: "showClassrooms" },
+  { key: "school", href: "school", flag: "showSchool" },
+  { key: "adminSchools", href: "admin/schools", flag: "showAdmin" },
+] as const
+
+export function AppNav({
+  active,
+  classroomBadge = 0,
+  locale,
+  schoolBadge = 0,
+  showAdmin = false,
+  showClassrooms = false,
+  showSchool = false,
+}: AppNavProps) {
   const labels = copy[locale].nav
+  const roleFlags = { showAdmin, showClassrooms, showSchool }
+  const badges: Partial<Record<AppNavProps["active"], number>> = {
+    classrooms: classroomBadge,
+    school: schoolBadge,
+  }
+  const visibleNavItems = [
+    ...navItems,
+    ...roleNavItems.filter((item) => roleFlags[item.flag]),
+  ]
 
   return (
     <header className="border-b border-[var(--border)] bg-[var(--surface-strong)]">
@@ -28,9 +69,13 @@ export function AppNav({ active, locale }: AppNavProps) {
           LEARNIFY
         </Link>
         <nav className="flex flex-wrap items-center gap-1 text-sm">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive =
-              active === item.key || (active === "lesson" && item.key === "courses")
+              active === item.key ||
+              (active === "lesson" && item.key === "courses") ||
+              (active === "classroomRoster" && item.key === "classrooms") ||
+              ((active === "schoolUsers" || active === "schoolInvites") &&
+                item.key === "school")
 
             return (
               <Link
@@ -43,6 +88,11 @@ export function AppNav({ active, locale }: AppNavProps) {
                 key={item.key}
               >
                 {labels[item.key]}
+                {badges[item.key] ? (
+                  <span className="ml-2 inline-flex min-w-5 items-center justify-center rounded-[4px] bg-[var(--brand)] px-1.5 py-0.5 text-xs font-semibold text-white">
+                    {badges[item.key]}
+                  </span>
+                ) : null}
               </Link>
             )
           })}

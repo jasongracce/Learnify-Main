@@ -7,8 +7,15 @@ type Copy = {
     signup: string
     dashboard: string
     courses: string
+    assignments: string
     lumi: string
     insights: string
+    school: string
+    schoolUsers: string
+    schoolInvites: string
+    classrooms: string
+    classroomRoster: string
+    adminSchools: string
     logout: string
     language: string
   }
@@ -120,8 +127,15 @@ export const copy = {
       signup: "Sign up",
       dashboard: "Dashboard",
       courses: "Courses",
+      assignments: "Assignments",
       lumi: "Lumi",
       insights: "Insights",
+      school: "School",
+      schoolUsers: "Users",
+      schoolInvites: "Invites",
+      classrooms: "Classrooms",
+      classroomRoster: "Roster",
+      adminSchools: "Schools",
       logout: "Log out",
       language: "TH",
     },
@@ -247,8 +261,15 @@ export const copy = {
       signup: "สมัคร",
       dashboard: "แดชบอร์ด",
       courses: "คอร์ส",
+      assignments: "Assignments",
       lumi: "Lumi",
       insights: "ข้อมูลเชิงลึก",
+      school: "School",
+      schoolUsers: "Users",
+      schoolInvites: "Invites",
+      classrooms: "Classrooms",
+      classroomRoster: "Roster",
+      adminSchools: "Schools",
       logout: "ออกจากระบบ",
       language: "EN",
     },

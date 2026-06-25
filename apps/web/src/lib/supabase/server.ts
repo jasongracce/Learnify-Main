@@ -3,6 +3,17 @@ import { createServerClient } from "@supabase/ssr"
 import type { CookieOptions } from "@supabase/ssr"
 import { requirePublicAppEnv } from "@/lib/env"
 
+export async function hasSupabaseAuthCookie() {
+  const cookieStore = await cookies()
+
+  return cookieStore
+    .getAll()
+    .some(
+      (cookie) =>
+        cookie.name.startsWith("sb-") && cookie.name.includes("auth-token")
+    )
+}
+
 export async function createSupabaseServerClient() {
   const {
     NEXT_PUBLIC_SUPABASE_URL: url,

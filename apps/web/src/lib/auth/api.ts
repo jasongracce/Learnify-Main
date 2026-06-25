@@ -6,9 +6,24 @@ import {
 } from "@learnify/database"
 import type { Locale } from "@learnify/shared"
 import { requireSupabaseServiceEnv } from "@/lib/env"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import {
+  createSupabaseServerClient,
+  hasSupabaseAuthCookie,
+} from "@/lib/supabase/server"
 
 export async function requireApiBetaUser(locale: Locale) {
+  if (!(await hasSupabaseAuthCookie())) {
+    return {
+      response: NextResponse.json(
+        {
+          error: "Authentication is required.",
+          redirectTo: `/${locale}/auth/login`,
+        },
+        { status: 401 }
+      ),
+    }
+  }
+
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },

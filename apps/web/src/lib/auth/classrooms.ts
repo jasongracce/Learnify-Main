@@ -9,7 +9,10 @@ import type { User } from "@supabase/supabase-js"
 import { createSupabaseServiceClientFromEnv, getMembershipByUserAndSchool } from "@learnify/database"
 import type { SchoolMembershipRecord, SchoolMembershipRole } from "@learnify/shared"
 import { requireSupabaseServiceEnv } from "@/lib/env"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import {
+  createSupabaseServerClient,
+  hasSupabaseAuthCookie,
+} from "@/lib/supabase/server"
 
 // Explicit discriminated results: success members must not declare `response`,
 // otherwise `"response" in auth` cannot narrow the union in route handlers.
@@ -26,6 +29,15 @@ type ApiAuthContext = {
 // ---------------------------------------------------------------------------
 
 export async function requireApiAuth(): Promise<ApiAuthFailure | ApiAuthContext> {
+  if (!(await hasSupabaseAuthCookie())) {
+    return {
+      response: NextResponse.json(
+        { error: "Authentication is required." },
+        { status: 401 }
+      ),
+    }
+  }
+
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },

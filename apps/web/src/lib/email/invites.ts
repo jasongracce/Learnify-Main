@@ -74,27 +74,20 @@ export async function sendInviteEmail(
 function buildInviteEmail(
   input: SendInviteEmailInput & { appUrl: string }
 ): { subject: string; html: string; text: string } {
+  const locale = input.locale
   const acceptPath =
     input.kind === "student"
-      ? `/api/classrooms/student-invites/accept?token=${encodeURIComponent(input.token)}`
-      : `/api/school/invites/accept?token=${encodeURIComponent(input.token)}`
+      ? `/${locale}/app/join/${encodeURIComponent(input.token)}`
+      : `/${locale}/app/invites/${encodeURIComponent(input.token)}`
   const link = `${input.appUrl.replace(/\/$/, "")}${acceptPath}`
-  const locale = input.locale
 
-  if (locale === "th") {
-    return buildThaiTemplate(input, link)
-  }
-
-  return buildEnglishTemplate(input, link)
+  return input.locale === "th"
+    ? buildThaiTemplate(input, link)
+    : buildEnglishTemplate(input, link)
 }
 
 function buildEnglishTemplate(input: SendInviteEmailInput, link: string) {
-  const roleLabel =
-    input.kind === "school_admin"
-      ? "school admin"
-      : input.kind === "teacher"
-        ? "teacher"
-        : "student"
+  const roleLabel = roleLabelFor(input.kind)
   const context =
     input.kind === "student"
       ? `Join ${input.classroomName ?? "your classroom"} at ${input.schoolName ?? "your school"}.`
@@ -122,29 +115,24 @@ function buildEnglishTemplate(input: SendInviteEmailInput, link: string) {
 }
 
 function buildThaiTemplate(input: SendInviteEmailInput, link: string) {
-  const roleLabel =
-    input.kind === "school_admin"
-      ? "ผู้ดูแลโรงเรียน"
-      : input.kind === "teacher"
-        ? "ครู"
-        : "นักเรียน"
+  const roleLabel = thaiRoleLabelFor(input.kind)
   const context =
     input.kind === "student"
       ? `เข้าร่วมห้องเรียน ${input.classroomName ?? "ของคุณ"} ที่ ${input.schoolName ?? "โรงเรียนของคุณ"}`
-      : `เข้าร่วม ${input.schoolName ?? "โรงเรียนของคุณ"} ในบทบาท${roleLabel}`
+      : `เข้าร่วม ${input.schoolName ?? "โรงเรียนของคุณ"} ในบทบาท ${roleLabel}.`
   const subject =
     input.kind === "student"
-      ? `คำเชิญเข้าร่วมห้องเรียน Learnify`
-      : `คำเชิญเข้าร่วม Learnify`
+      ? `คุณได้รับคำเชิญเข้าห้องเรียน ${input.classroomName ?? "Learnify"}`
+      : `คุณได้รับคำเชิญเข้าร่วม Learnify ในบทบาท ${roleLabel}`
 
   const text = [
     "คำเชิญจาก Learnify",
     "",
     context,
     "",
-    `กดยอมรับคำเชิญ: ${link}`,
+    `ยอมรับคำเชิญ: ${link}`,
     "",
-    "คำเชิญนี้หมดอายุใน 14 วัน",
+    "คำเชิญนี้จะหมดอายุใน 14 วัน",
   ].join("\n")
 
   return {
@@ -152,6 +140,18 @@ function buildThaiTemplate(input: SendInviteEmailInput, link: string) {
     text,
     html: wrapHtml("คำเชิญจาก Learnify", context, link, "ยอมรับคำเชิญ"),
   }
+}
+
+function roleLabelFor(kind: InviteKind) {
+  if (kind === "school_admin") return "school admin"
+  if (kind === "teacher") return "teacher"
+  return "student"
+}
+
+function thaiRoleLabelFor(kind: InviteKind) {
+  if (kind === "school_admin") return "ผู้ดูแลโรงเรียน"
+  if (kind === "teacher") return "ครู"
+  return "นักเรียน"
 }
 
 function wrapHtml(title: string, body: string, link: string, cta: string) {

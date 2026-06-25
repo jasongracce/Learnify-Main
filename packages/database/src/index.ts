@@ -354,18 +354,46 @@ export async function upsertStudentProfile(input: {
   userId: string
   locale: Locale
 }) {
+  const { data: existing, error: existingError } = await input.supabase
+    .from("profiles")
+    .select("id,role,language_preference")
+    .eq("id", input.userId)
+    .maybeSingle<{
+      id: string
+      role: "student" | "teacher" | "admin"
+      language_preference: Locale
+    }>()
+
+  if (existingError) {
+    throw new Error(existingError.message)
+  }
+
+  if (existing) {
+    const { data, error } = await input.supabase
+      .from("profiles")
+      .update({ language_preference: input.locale })
+      .eq("id", input.userId)
+      .select("id,role,language_preference")
+      .single<{
+        id: string
+        role: "student" | "teacher" | "admin"
+        language_preference: Locale
+      }>()
+
+    if (error) {
+      throw new Error(error.message)
+    }
+
+    return data
+  }
+
   const { data, error } = await input.supabase
     .from("profiles")
-    .upsert(
-      {
-        id: input.userId,
-        role: "student",
-        language_preference: input.locale,
-      },
-      {
-        onConflict: "id",
-      }
-    )
+    .insert({
+      id: input.userId,
+      role: "student",
+      language_preference: input.locale,
+    })
     .select("id,role,language_preference")
     .single<{
       id: string
@@ -398,6 +426,7 @@ export async function checkSupabaseWaitlistTable(input: {
 }
 
 export * from "./classrooms"
+export * from "./assignments"
 
 export async function consumeRateLimit(
   input: ConsumeRateLimitInput

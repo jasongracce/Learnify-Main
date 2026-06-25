@@ -234,6 +234,25 @@ describe("POST /api/lumi/chat", () => {
     })
   })
 
+  it("returns 401 before rate limiting when the user is unauthenticated", async () => {
+    mocks.requireApiBetaUser.mockResolvedValueOnce({
+      response: Response.json(
+        {
+          error: "Authentication is required.",
+          redirectTo: "/en/auth/login",
+        },
+        { status: 401 }
+      ),
+    })
+
+    const response = await postLumiChat()
+    const payload = await response.json()
+
+    expect(response.status).toBe(401)
+    expect(payload.redirectTo).toBe("/en/auth/login")
+    expect(mocks.consumeRateLimit).not.toHaveBeenCalled()
+  })
+
   it("uses mock AI mode and saves source metadata", async () => {
     vi.stubEnv("LEARNIFY_LUMI_MODE", "mock")
 
@@ -509,7 +528,7 @@ describe("POST /api/lumi/chat", () => {
     expect(response.status).toBe(429)
     expect(response.headers.get("Retry-After")).toBe("10")
     expect(payload.retryAfterSeconds).toBe(10)
-    expect(mocks.requireApiBetaUser).not.toHaveBeenCalled()
+    expect(mocks.requireApiBetaUser).toHaveBeenCalledWith("en")
     expect(mocks.consumeRateLimit).toHaveBeenCalledWith({
       supabase: limiterSupabase,
       key: "203.0.113.10",
@@ -561,7 +580,7 @@ describe("POST /api/lumi/chat", () => {
     expect(response.status).toBe(503)
     expect(payload.error).toBe("Lumi is temporarily unavailable. Please try again soon.")
     expect(payload.error).not.toContain("rpc unavailable")
-    expect(mocks.requireApiBetaUser).not.toHaveBeenCalled()
+    expect(mocks.requireApiBetaUser).toHaveBeenCalledWith("en")
   })
 
   it("returns a generic error when internal route work fails", async () => {

@@ -5,6 +5,7 @@ import {
   insertAuditEvent,
 } from "@learnify/database"
 import { requireApiSchoolAccess } from "@/lib/auth/classrooms"
+import { appUrl } from "@/lib/site"
 
 type Context = { params: Promise<{ classroomId: string }> }
 
@@ -38,7 +39,7 @@ export async function POST(request: Request, { params }: Context) {
       )
     }
 
-    const updated = await regenerateJoinCode({
+    const { classroom: updated, rawJoinToken } = await regenerateJoinCode({
       supabase: auth.serviceSupabase,
       classroomId,
     })
@@ -54,7 +55,12 @@ export async function POST(request: Request, { params }: Context) {
       metadata: {},
     })
 
-    return NextResponse.json({ classroom: updated })
+    return NextResponse.json({
+      classroom: updated,
+      joinToken: rawJoinToken,
+      joinUrl: `${appUrl}/en/app/join/${rawJoinToken}`,
+      qrAvailable: true,
+    })
   } catch (error) {
     console.error("regenerateJoinCode failed", {
       error: error instanceof Error ? error.message : error,

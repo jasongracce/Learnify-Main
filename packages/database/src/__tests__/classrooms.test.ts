@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 import {
   approveJoinRequest,
+  createClassroom,
+  getClassroomRosterDetailBySlug,
+  getSchoolAdminNotificationSummary,
+  listSchoolMemberships,
   removeStudentFromClassroom,
   type SupabaseClient,
 } from "../index"
@@ -31,6 +35,11 @@ class MockQuery {
 
   eq() {
     this.calls.push({ table: this.table, method: "eq" })
+    return this
+  }
+
+  neq() {
+    this.calls.push({ table: this.table, method: "neq" })
     return this
   }
 
@@ -342,5 +351,110 @@ describe("removeStudentFromClassroom", () => {
           (call.payload as { status?: string }).status === "removed"
       )
     ).toBe(true)
+  })
+})
+
+describe("classroom read models", () => {
+  it("lists school memberships with school-scoped filters", async () => {
+    const memberships = [{ ...activeMembership, role: "teacher" }]
+    const { calls, supabase } = createMockSupabase({
+      school_memberships: [{ data: memberships }],
+    })
+
+    await expect(
+      listSchoolMemberships({
+        supabase,
+        schoolId: "school-1",
+        role: "teacher",
+        status: "active",
+      })
+    ).resolves.toEqual(memberships)
+
+    expect(calls.filter((call) => call.table === "school_memberships" && call.method === "eq")).toHaveLength(3)
+  })
+
+  it("builds classroom detail with active roster and pending requests", async () => {
+    const classroom = {
+      id: "classroom-1",
+      school_id: "school-1",
+      owner_membership_id: "teacher-membership-1",
+      slug: "physics-10",
+    }
+    const roster = [{ id: "roster-1", classroom_id: "classroom-1", status: "active" }]
+    const requests = [{ id: "request-1", classroom_id: "classroom-1", status: "pending_teacher_approval" }]
+    const { supabase } = createMockSupabase({
+      classrooms: [{ data: classroom }],
+      classroom_memberships: [{ data: roster }],
+      classroom_join_requests: [{ data: requests }],
+    })
+
+    await expect(
+      getClassroomRosterDetailBySlug({
+        supabase,
+        classroomSlug: "physics-10",
+      })
+    ).resolves.toMatchObject({
+      classroom,
+      activeRoster: roster,
+      pendingRequests: requests,
+    })
+  })
+
+  it("summarizes school admin notifications from seats, capacity, and invites", async () => {
+    const { supabase } = createMockSupabase({
+      schools: [{ data: school }, { data: school }],
+      school_memberships: [
+        { data: [{ ...invitedMembership, status: "pending_capacity" }] },
+        ...schoolSummaryResults(2).slice(1),
+      ],
+      school_invites: [{ data: [{ id: "invite-1", status: "pending" }] }],
+    })
+
+    await expect(
+      getSchoolAdminNotificationSummary({
+        supabase,
+        schoolId: "school-1",
+      })
+    ).resolves.toMatchObject({
+      pendingCapacityMemberships: 1,
+      pendingInvites: 1,
+      studentSeatsUsed: 2,
+    })
+  })
+})
+
+describe("classroom join token contract", () => {
+  it("returns the raw join token once without storing it", async () => {
+    const { calls, supabase } = createMockSupabase({
+      classrooms: [
+        {
+          data: {
+            id: "classroom-1",
+            join_token_hash: "hashed-token",
+          },
+        },
+      ],
+    })
+
+    const result = await createClassroom({
+      supabase,
+      schoolId: "school-1",
+      ownerMembershipId: "teacher-membership-1",
+      request: {
+        schoolId: "school-1",
+        locale: "en",
+        name: "Physics 10",
+        subjectLabel: "Physics",
+      },
+    })
+
+    const insertCall = calls.find(
+      (call) => call.table === "classrooms" && call.method === "insert"
+    )
+    expect(result.rawJoinToken).toEqual(expect.any(String))
+    expect(result.classroom).toMatchObject({ id: "classroom-1" })
+    expect(insertCall?.payload).toMatchObject({ join_token_hash: expect.any(String) })
+    expect(insertCall?.payload).not.toHaveProperty("joinToken")
+    expect(insertCall?.payload).not.toHaveProperty("rawJoinToken")
   })
 })

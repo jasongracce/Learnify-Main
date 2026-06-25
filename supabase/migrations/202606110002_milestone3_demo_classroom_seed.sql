@@ -49,6 +49,18 @@ insert into public.school_memberships (
   activated_at
 )
 values (
+  '10000000-0000-4000-8000-000000000100',
+  '10000000-0000-4000-8000-000000000001',
+  null,
+  'school_admin',
+  'active',
+  'school-admin@demo.learnify.academy',
+  true,
+  false,
+  null,
+  now()
+),
+(
   '10000000-0000-4000-8000-000000000101',
   '10000000-0000-4000-8000-000000000001',
   null,
@@ -59,6 +71,18 @@ values (
   false,
   null,
   now()
+),
+(
+  '10000000-0000-4000-8000-000000000102',
+  '10000000-0000-4000-8000-000000000001',
+  null,
+  'student',
+  'invited',
+  'student@demo.learnify.academy',
+  false,
+  false,
+  null,
+  null
 )
 on conflict (id) do update set
   status = excluded.status,
@@ -141,3 +165,31 @@ on conflict (id) do update set
   grade_label = excluded.grade_label,
   status = excluded.status,
   join_enabled = excluded.join_enabled;
+
+insert into public.classroom_join_requests (
+  id,
+  school_id,
+  classroom_id,
+  student_user_id,
+  student_membership_id,
+  email,
+  email_normalized,
+  source,
+  status,
+  requested_at
+)
+values (
+  '10000000-0000-4000-8000-000000000501',
+  '10000000-0000-4000-8000-000000000001',
+  '10000000-0000-4000-8000-000000000301',
+  null,
+  '10000000-0000-4000-8000-000000000102',
+  'student@demo.learnify.academy',
+  'student@demo.learnify.academy',
+  'email_invite',
+  'pending_teacher_approval',
+  now()
+)
+on conflict (id) do update set
+  status = excluded.status,
+  requested_at = excluded.requested_at;

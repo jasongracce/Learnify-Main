@@ -73,6 +73,12 @@ export async function POST(request: Request) {
     )
   }
 
+  const auth = await requireApiBetaUser(parsed.data.locale)
+
+  if ("response" in auth) {
+    return auth.response
+  }
+
   const limiterSupabase = createLumiLimiterSupabase()
 
   if ("response" in limiterSupabase) {
@@ -92,12 +98,6 @@ export async function POST(request: Request) {
 
   if (!ipLimit.result.allowed) {
     return createRateLimitResponse(ipLimit.result.retryAfterSeconds)
-  }
-
-  const auth = await requireApiBetaUser(parsed.data.locale)
-
-  if ("response" in auth) {
-    return auth.response
   }
 
   const userLimit = await consumeLumiRateLimit({

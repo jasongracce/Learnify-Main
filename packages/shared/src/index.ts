@@ -304,4 +304,5 @@ export {
   physicsSkills,
 } from "./content/physics-foundations"
 
+export * from "./assignments"
 export * from "./classrooms"

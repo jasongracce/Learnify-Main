@@ -6,6 +6,7 @@ import {
 } from "@learnify/database"
 import { createClassroomRequestSchema } from "@learnify/shared"
 import { requireApiSchoolAccess } from "@/lib/auth/classrooms"
+import { appUrl } from "@/lib/site"
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null)
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
   if ("response" in auth) return auth.response
 
   try {
-    const classroom = await createClassroom({
+    const { classroom, rawJoinToken } = await createClassroom({
       supabase: auth.serviceSupabase,
       schoolId,
       ownerMembershipId: auth.membership.id,
@@ -45,7 +46,15 @@ export async function POST(request: Request) {
       },
     })
 
-    return NextResponse.json({ classroom }, { status: 201 })
+    return NextResponse.json(
+      {
+        classroom,
+        joinToken: rawJoinToken,
+        joinUrl: `${appUrl}/${parsed.data.locale}/app/join/${rawJoinToken}`,
+        qrAvailable: true,
+      },
+      { status: 201 }
+    )
   } catch (error) {
     console.error("createClassroom failed", {
       error: error instanceof Error ? error.message : error,
