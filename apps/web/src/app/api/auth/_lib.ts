@@ -13,6 +13,18 @@ export function authJsonError(error: string, status = 400) {
   return NextResponse.json({ error }, { status })
 }
 
+export function authUnexpectedError(error: unknown) {
+  const message = error instanceof Error ? error.message : "Unknown auth error."
+
+  console.error("Auth route failed", error)
+
+  if (message.startsWith("Missing ")) {
+    return authJsonError(message, 500)
+  }
+
+  return authJsonError("Authentication is temporarily unavailable.", 500)
+}
+
 export function appUrl(request: Request, path: string) {
   return new URL(path, request.url).toString()
 }
