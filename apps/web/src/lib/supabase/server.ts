@@ -1,7 +1,7 @@
 import { cookies } from "next/headers"
 import { createServerClient } from "@supabase/ssr"
 import type { CookieOptions } from "@supabase/ssr"
-import { requirePublicAppEnv } from "@/lib/env"
+import { requireSupabasePublicEnv } from "@/lib/env"
 
 export async function hasSupabaseAuthCookie() {
   const cookieStore = await cookies()
@@ -18,7 +18,7 @@ export async function createSupabaseServerClient() {
   const {
     NEXT_PUBLIC_SUPABASE_URL: url,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: anonKey,
-  } = requirePublicAppEnv()
+  } = requireSupabasePublicEnv()
   const cookieStore = await cookies()
 
   return createServerClient(url, anonKey, {

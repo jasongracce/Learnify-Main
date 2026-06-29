@@ -12,6 +12,11 @@ export type SupabaseServiceEnv = {
   SUPABASE_SERVICE_ROLE_KEY: string
 }
 
+export type SupabasePublicEnv = {
+  NEXT_PUBLIC_SUPABASE_URL: string
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: string
+}
+
 export type LumiEnv = {
   LEARNIFY_LUMI_MODE: LumiMode
   OPENAI_API_KEY?: string
@@ -51,6 +56,11 @@ const SUPABASE_SERVICE_ENV_KEYS = [
   "SUPABASE_SERVICE_ROLE_KEY",
 ] as const
 
+const SUPABASE_PUBLIC_ENV_KEYS = [
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+] as const
+
 export function getPublicAppEnvStatus(
   env: Record<string, string | undefined> = process.env
 ): EnvStatus<PublicAppEnv> {
@@ -64,6 +74,24 @@ export function requirePublicAppEnv(
 
   if (!status.configured) {
     throw new Error(`Missing public app env: ${status.missing.join(", ")}`)
+  }
+
+  return status.env
+}
+
+export function getSupabasePublicEnvStatus(
+  env: Record<string, string | undefined> = process.env
+): EnvStatus<SupabasePublicEnv> {
+  return readRequiredEnv(env, SUPABASE_PUBLIC_ENV_KEYS)
+}
+
+export function requireSupabasePublicEnv(
+  env: Record<string, string | undefined> = process.env
+): SupabasePublicEnv {
+  const status = getSupabasePublicEnvStatus(env)
+
+  if (!status.configured) {
+    throw new Error(`Missing Supabase public env: ${status.missing.join(", ")}`)
   }
 
   return status.env

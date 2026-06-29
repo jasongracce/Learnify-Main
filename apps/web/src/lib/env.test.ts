@@ -2,8 +2,10 @@ import { describe, expect, it, vi } from "vitest"
 import {
   getLumiEnv,
   getProductionConfigHealth,
+  getSupabasePublicEnvStatus,
   getSupabaseServiceEnvStatus,
   requirePublicAppEnv,
+  requireSupabasePublicEnv,
 } from "./env"
 
 const completeEnv = {
@@ -38,6 +40,11 @@ describe("server env parsing", () => {
       missing: [],
     })
 
+    expect(requireSupabasePublicEnv(completeEnv)).toEqual({
+      NEXT_PUBLIC_SUPABASE_URL: "https://supabase.test",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+    })
+
     expect(getLumiEnv(completeEnv)).toMatchObject({
       LEARNIFY_LUMI_MODE: "rag_ai",
       OPENAI_API_KEY: "openai-key",
@@ -58,6 +65,22 @@ describe("server env parsing", () => {
     expect(status).toEqual({
       configured: false,
       missing: ["SUPABASE_SERVICE_ROLE_KEY"],
+    })
+  })
+
+  it("allows Supabase auth env without app URL env", () => {
+    const status = getSupabasePublicEnvStatus({
+      NEXT_PUBLIC_SUPABASE_URL: "https://supabase.test",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+    })
+
+    expect(status).toEqual({
+      configured: true,
+      env: {
+        NEXT_PUBLIC_SUPABASE_URL: "https://supabase.test",
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+      },
+      missing: [],
     })
   })
 
